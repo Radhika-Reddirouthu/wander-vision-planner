@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,18 +7,23 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import { 
   MapPin, 
   Users, 
   User, 
   Camera, 
   Sparkles, 
-  Calendar,
+  CalendarIcon,
   Plane,
   Mountain,
   Briefcase,
   Upload,
-  Mail
+  Mail,
+  DollarSign
 } from "lucide-react";
 import heroImage from "@/assets/hero-travel.jpg";
 import ChatBot from "./ChatBot";
@@ -28,6 +34,10 @@ const TravelInterface = () => {
   const [currentView, setCurrentView] = useState("main");
   const [emails, setEmails] = useState([""]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [departDate, setDepartDate] = useState<Date>();
+  const [returnDate, setReturnDate] = useState<Date>();
+  const [budget, setBudget] = useState("");
+  const [needsFlights, setNeedsFlights] = useState(false);
 
   const addEmailField = () => {
     setEmails([...emails, ""]);
@@ -159,32 +169,40 @@ const TravelInterface = () => {
               {/* Trip Type Selection */}
               <div>
                 <Label className="text-lg font-semibold mb-4 block">What type of trip are you planning?</Label>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <Button
-                    variant={tripType === "leisure" ? "default" : "outline"}
-                    onClick={() => setTripType("leisure")}
-                    className="h-24 flex flex-col items-center justify-center space-y-2"
-                  >
-                    <Plane className="w-6 h-6" />
-                    <span>Leisure</span>
-                  </Button>
-                  <Button
-                    variant={tripType === "explore" ? "default" : "outline"}
-                    onClick={() => setTripType("explore")}
-                    className="h-24 flex flex-col items-center justify-center space-y-2"
-                  >
-                    <Mountain className="w-6 h-6" />
-                    <span>Explore</span>
-                  </Button>
-                  <Button
-                    variant={tripType === "workation" ? "default" : "outline"}
-                    onClick={() => setTripType("workation")}
-                    className="h-24 flex flex-col items-center justify-center space-y-2"
-                  >
-                    <Briefcase className="w-6 h-6" />
-                    <span>Workation</span>
-                  </Button>
-                </div>
+                <RadioGroup value={tripType} onValueChange={setTripType}>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                      <RadioGroupItem value="leisure" id="leisure" />
+                      <Label htmlFor="leisure" className="flex items-center space-x-2 cursor-pointer flex-1">
+                        <Plane className="w-5 h-5 text-primary" />
+                        <div>
+                          <div className="font-medium">Leisure</div>
+                          <div className="text-sm text-muted-foreground">Relaxation & sightseeing</div>
+                        </div>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                      <RadioGroupItem value="explore" id="explore" />
+                      <Label htmlFor="explore" className="flex items-center space-x-2 cursor-pointer flex-1">
+                        <Mountain className="w-5 h-5 text-adventure" />
+                        <div>
+                          <div className="font-medium">Explore</div>
+                          <div className="text-sm text-muted-foreground">Adventure & discovery</div>
+                        </div>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                      <RadioGroupItem value="workation" id="workation" />
+                      <Label htmlFor="workation" className="flex items-center space-x-2 cursor-pointer flex-1">
+                        <Briefcase className="w-5 h-5 text-nature" />
+                        <div>
+                          <div className="font-medium">Workation</div>
+                          <div className="text-sm text-muted-foreground">Work & travel balance</div>
+                        </div>
+                      </Label>
+                    </div>
+                  </div>
+                </RadioGroup>
               </div>
 
               {tripType && (
@@ -193,19 +211,27 @@ const TravelInterface = () => {
                   <div>
                     <Label className="text-lg font-semibold mb-4 block">Are you traveling solo or in a group?</Label>
                     <RadioGroup value={groupType} onValueChange={setGroupType}>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="solo" id="solo" />
-                        <Label htmlFor="solo" className="flex items-center space-x-2">
-                          <User className="w-4 h-4" />
-                          <span>Solo Trip</span>
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="group" id="group" />
-                        <Label htmlFor="group" className="flex items-center space-x-2">
-                          <Users className="w-4 h-4" />
-                          <span>Group Trip</span>
-                        </Label>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                          <RadioGroupItem value="solo" id="solo" />
+                          <Label htmlFor="solo" className="flex items-center space-x-2 cursor-pointer flex-1">
+                            <User className="w-5 h-5 text-primary" />
+                            <div>
+                              <div className="font-medium">Solo Trip</div>
+                              <div className="text-sm text-muted-foreground">Travel independently</div>
+                            </div>
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                          <RadioGroupItem value="group" id="group" />
+                          <Label htmlFor="group" className="flex items-center space-x-2 cursor-pointer flex-1">
+                            <Users className="w-5 h-5 text-adventure" />
+                            <div>
+                              <div className="font-medium">Group Trip</div>
+                              <div className="text-sm text-muted-foreground">Travel with others</div>
+                            </div>
+                          </Label>
+                        </div>
                       </div>
                     </RadioGroup>
                   </div>
@@ -220,6 +246,106 @@ const TravelInterface = () => {
                       placeholder="Enter your desired destination..." 
                       className="text-lg p-4"
                     />
+                  </div>
+
+                  {/* Travel Dates */}
+                  <div>
+                    <Label className="text-lg font-semibold mb-4 block">Travel Dates</Label>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="depart-date" className="text-sm font-medium mb-2 block">Departure Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal p-4",
+                                !departDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {departDate ? format(departDate, "PPP") : "Select departure date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={departDate}
+                              onSelect={setDepartDate}
+                              disabled={(date) => date < new Date()}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div>
+                        <Label htmlFor="return-date" className="text-sm font-medium mb-2 block">Return Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal p-4",
+                                !returnDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {returnDate ? format(returnDate, "PPP") : "Select return date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={returnDate}
+                              onSelect={setReturnDate}
+                              disabled={(date) => date < new Date() || (departDate && date < departDate)}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Budget */}
+                  <div>
+                    <Label htmlFor="budget" className="text-lg font-semibold mb-4 block">
+                      What's your budget?
+                    </Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        id="budget"
+                        placeholder="e.g., 2000 - 5000"
+                        value={budget}
+                        onChange={(e) => setBudget(e.target.value)}
+                        className="text-lg p-4 pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Flight Booking */}
+                  <div>
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Checkbox 
+                        id="flights" 
+                        checked={needsFlights}
+                        onCheckedChange={(checked) => setNeedsFlights(checked === true)}
+                      />
+                      <Label htmlFor="flights" className="text-lg font-semibold flex items-center space-x-2">
+                        <Plane className="w-5 h-5" />
+                        <span>I need help with flight booking</span>
+                      </Label>
+                    </div>
+                    {needsFlights && (
+                      <div className="p-4 bg-accent/20 rounded-lg border">
+                        <p className="text-sm text-muted-foreground">
+                          ✈️ We'll include flight recommendations and booking assistance in your travel plan with the best deals for your dates.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Group Email Collection */}
