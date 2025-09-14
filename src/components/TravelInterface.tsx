@@ -20,6 +20,7 @@ import {
   Mail
 } from "lucide-react";
 import heroImage from "@/assets/hero-travel.jpg";
+import ChatBot from "./ChatBot";
 
 const TravelInterface = () => {
   const [tripType, setTripType] = useState("");
@@ -71,21 +72,21 @@ const TravelInterface = () => {
 
         {/* Main Options */}
         <div className="container mx-auto px-4 py-20">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {/* Plan Your Trip */}
-            <Card className="group cursor-pointer hover:shadow-ocean transition-all duration-300 hover:scale-105">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-gradient-ocean rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                  <MapPin className="w-8 h-8 text-white" />
+            <Card className="group cursor-pointer hover:shadow-ocean transition-all duration-500 hover:scale-105 bg-gradient-to-br from-card via-card to-accent/5">
+              <CardContent className="p-10 text-center">
+                <div className="w-20 h-20 bg-gradient-ocean rounded-full flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 shadow-elegant">
+                  <MapPin className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-xl font-bold mb-4 text-foreground">Plan Your Trip</h3>
-                <p className="text-muted-foreground mb-6">
-                  Choose your destination and let us create the perfect itinerary
+                <h3 className="text-2xl font-bold mb-4 text-foreground">Plan Your Trip</h3>
+                <p className="text-muted-foreground mb-8 leading-relaxed">
+                  Choose your destination, trip type, and get personalized itineraries with perfect timing recommendations
                 </p>
                 <Button 
                   onClick={() => setCurrentView("plan")}
                   variant="outline"
-                  className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                  className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 py-3"
                 >
                   Get Started
                 </Button>
@@ -93,18 +94,18 @@ const TravelInterface = () => {
             </Card>
 
             {/* Surprise Me */}
-            <Card className="group cursor-pointer hover:shadow-adventure transition-all duration-300 hover:scale-105">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-gradient-adventure rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-8 h-8 text-white" />
+            <Card className="group cursor-pointer hover:shadow-adventure transition-all duration-500 hover:scale-105 bg-gradient-to-br from-card via-card to-adventure/5">
+              <CardContent className="p-10 text-center">
+                <div className="w-20 h-20 bg-gradient-adventure rounded-full flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 shadow-elegant">
+                  <Sparkles className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-xl font-bold mb-4 text-foreground">Surprise Me</h3>
-                <p className="text-muted-foreground mb-6">
-                  Get seasonal recommendations based on your budget and preferences
+                <h3 className="text-2xl font-bold mb-4 text-foreground">Surprise Me</h3>
+                <p className="text-muted-foreground mb-8 leading-relaxed">
+                  Get seasonal recommendations based on your budget and preferences for unexpected adventures
                 </p>
                 <Button 
                   onClick={() => setCurrentView("surprise")}
-                  className="w-full bg-adventure hover:bg-adventure/90 text-adventure-foreground"
+                  className="w-full bg-adventure hover:bg-adventure/90 text-adventure-foreground transition-all duration-300 py-3"
                 >
                   Discover
                 </Button>
@@ -112,45 +113,26 @@ const TravelInterface = () => {
             </Card>
 
             {/* Identify Place */}
-            <Card className="group cursor-pointer hover:shadow-nature transition-all duration-300 hover:scale-105">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-gradient-nature rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                  <Camera className="w-8 h-8 text-white" />
+            <Card className="group cursor-pointer hover:shadow-nature transition-all duration-500 hover:scale-105 bg-gradient-to-br from-card via-card to-nature/5">
+              <CardContent className="p-10 text-center">
+                <div className="w-20 h-20 bg-gradient-nature rounded-full flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 shadow-elegant">
+                  <Camera className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-xl font-bold mb-4 text-foreground">Identify Place</h3>
-                <p className="text-muted-foreground mb-6">
-                  Upload an image and discover travel info about that location
+                <h3 className="text-2xl font-bold mb-4 text-foreground">Identify Place</h3>
+                <p className="text-muted-foreground mb-8 leading-relaxed">
+                  Upload an image and discover comprehensive travel information about that location
                 </p>
                 <Button 
                   onClick={() => setCurrentView("identify")}
-                  className="w-full bg-nature hover:bg-nature/90 text-nature-foreground"
+                  className="w-full bg-nature hover:bg-nature/90 text-nature-foreground transition-all duration-300 py-3"
                 >
                   Upload Photo
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Best Time to Visit */}
-            <Card className="group cursor-pointer hover:shadow-ocean transition-all duration-300 hover:scale-105">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-gradient-sunset rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                  <Calendar className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-xl font-bold mb-4 text-foreground">Best Time to Visit</h3>
-                <p className="text-muted-foreground mb-6">
-                  Check optimal travel dates based on events and your calendar
-                </p>
-                <Button 
-                  onClick={() => setCurrentView("timing")}
-                  variant="outline"
-                  className="w-full border-accent text-accent hover:bg-accent hover:text-accent-foreground"
-                >
-                  Check Dates
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </div>
+        <ChatBot />
       </div>
     );
   }
@@ -288,14 +270,33 @@ const TravelInterface = () => {
                     </div>
                   )}
 
+                  {/* Timing Recommendation Section */}
+                  <div className="mt-6 p-6 bg-gradient-to-r from-accent/10 to-primary/10 rounded-lg border border-accent/20">
+                    <h4 className="font-semibold mb-2 text-primary">📅 Best Time to Visit Recommendations</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Based on your destination, we'll analyze seasonal patterns, events, and your calendar to suggest optimal travel dates.
+                    </p>
+                    <div className="grid md:grid-cols-2 gap-4 text-sm">
+                      <div className="p-3 bg-card rounded border">
+                        <span className="font-medium text-nature">🌸 Peak Season:</span>
+                        <p className="text-muted-foreground">Best weather, higher prices</p>
+                      </div>
+                      <div className="p-3 bg-card rounded border">
+                        <span className="font-medium text-adventure">🍂 Off-Peak:</span>
+                        <p className="text-muted-foreground">Lower prices, fewer crowds</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <Button className="w-full bg-gradient-ocean text-white text-lg py-4">
-                    Create My Itinerary
+                    Create My Itinerary with Perfect Timing
                   </Button>
                 </>
               )}
             </CardContent>
           </Card>
         </div>
+        <ChatBot />
       </div>
     );
   }
@@ -376,6 +377,7 @@ const TravelInterface = () => {
             </CardContent>
           </Card>
         </div>
+        <ChatBot />
       </div>
     );
   }
@@ -467,6 +469,7 @@ const TravelInterface = () => {
             </CardContent>
           </Card>
         </div>
+        <ChatBot />
       </div>
     );
   }
