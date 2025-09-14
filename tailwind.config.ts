@@ -39,6 +39,14 @@ export default {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
+        adventure: {
+          DEFAULT: "hsl(var(--adventure))",
+          foreground: "hsl(var(--adventure-foreground))",
+        },
+        nature: {
+          DEFAULT: "hsl(var(--nature))",
+          foreground: "hsl(var(--nature-foreground))",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
@@ -57,6 +65,17 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      backgroundImage: {
+        "gradient-ocean": "var(--gradient-ocean)",
+        "gradient-adventure": "var(--gradient-adventure)",
+        "gradient-nature": "var(--gradient-nature)",
+        "gradient-sunset": "var(--gradient-sunset)",
+      },
+      boxShadow: {
+        "ocean": "var(--shadow-ocean)",
+        "adventure": "var(--shadow-adventure)",
+        "nature": "var(--shadow-nature)",
       },
       borderRadius: {
         lg: "var(--radius)",
