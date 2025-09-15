@@ -3,7 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, X, Send, Bot, User } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || '',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+);
 
 interface Message {
   id: string;
@@ -23,9 +29,10 @@ const ChatBot = () => {
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendMessage = () => {
-    if (!inputMessage.trim()) return;
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -35,18 +42,39 @@ const ChatBot = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputMessage;
     setInputMessage("");
+    setIsLoading(true);
 
-    // Simulate bot response (in real implementation, this would connect to Gemini Pro)
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke('chat-assistant', {
+        body: { 
+          message: currentInput,
+          conversationHistory: messages.slice(-10) // Send last 10 messages for context
+        }
+      });
+      
+      if (error) throw error;
+
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I understand you're asking about travel. To provide you with personalized recommendations using Gemini Pro AI, please connect this app to Supabase for advanced AI features. For now, I can offer general travel advice!",
+        text: data.response || "I apologize, but I'm having trouble responding right now. Please try again!",
         sender: "bot",
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, botResponse]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      const errorResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "I'm sorry, I'm having trouble connecting to my AI brain right now. Please try again in a moment! 🤖",
+        sender: "bot",
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -124,8 +152,12 @@ const ChatBot = () => {
                   onKeyPress={handleKeyPress}
                   className="flex-1"
                 />
-                <Button onClick={handleSendMessage} className="bg-gradient-ocean text-white">
-                  <Send className="w-4 h-4" />
+                <Button 
+                  onClick={handleSendMessage} 
+                  disabled={isLoading}
+                  className="bg-gradient-ocean text-white"
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
             </div>

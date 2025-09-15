@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from '@supabase/supabase-js';
 import { 
   MapPin, 
   Users, 
@@ -23,10 +26,20 @@ import {
   Briefcase,
   Upload,
   Mail,
-  IndianRupee
+  IndianRupee,
+  Clock,
+  Star,
+  MapPin as LocationPin,
+  Utensils
 } from "lucide-react";
 import heroImage from "@/assets/hero-travel.jpg";
 import ChatBot from "./ChatBot";
+
+// Initialize Supabase client  
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || '',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+);
 
 const TravelInterface = () => {
   const [tripType, setTripType] = useState("");
@@ -38,6 +51,37 @@ const TravelInterface = () => {
   const [returnDate, setReturnDate] = useState<Date>();
   const [budget, setBudget] = useState("");
   const [needsFlights, setNeedsFlights] = useState(false);
+  const [destination, setDestination] = useState("");
+  const [destinationInfo, setDestinationInfo] = useState<any>(null);
+  const [itinerary, setItinerary] = useState<any>(null);
+  const [isLoadingDestination, setIsLoadingDestination] = useState(false);
+  const [isLoadingItinerary, setIsLoadingItinerary] = useState(false);
+  const [isLoadingImageAnalysis, setIsLoadingImageAnalysis] = useState(false);
+  const [imageAnalysis, setImageAnalysis] = useState<any>(null);
+
+  // Fetch destination info when destination changes
+  useEffect(() => {
+    const fetchDestinationInfo = async () => {
+      if (destination.length > 2) {
+        setIsLoadingDestination(true);
+        try {
+          const { data, error } = await supabase.functions.invoke('get-destination-info', {
+            body: { destination }
+          });
+          
+          if (error) throw error;
+          setDestinationInfo(data);
+        } catch (error) {
+          console.error('Error fetching destination info:', error);
+        } finally {
+          setIsLoadingDestination(false);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(fetchDestinationInfo, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [destination]);
 
   const addEmailField = () => {
     setEmails([...emails, ""]);
@@ -49,17 +93,84 @@ const TravelInterface = () => {
     setEmails(newEmails);
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setUploadedImage(e.target?.result as string);
+      reader.onload = async (e) => {
+        const imageBase64 = e.target?.result as string;
+        setUploadedImage(imageBase64);
+        
+        // Analyze the image with Gemini Vision
+        setIsLoadingImageAnalysis(true);
+        try {
+          const { data, error } = await supabase.functions.invoke('identify-place', {
+            body: { imageBase64 }
+          });
+          
+          if (error) throw error;
+          setImageAnalysis(data);
+        } catch (error) {
+          console.error('Error analyzing image:', error);
+        } finally {
+          setIsLoadingImageAnalysis(false);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
+  const handleCreateItinerary = async () => {
+    if (!destination || !tripType || !groupType || !departDate || !returnDate || !budget) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setIsLoadingItinerary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-itinerary', {
+        body: {
+          destination,
+          tripType,
+          groupType,
+          departDate: format(departDate, 'yyyy-MM-dd'),
+          returnDate: format(returnDate, 'yyyy-MM-dd'),
+          budget,
+          needsFlights
+        }
+      });
+      
+      if (error) throw error;
+      setItinerary(data);
+      setCurrentView('itinerary');
+    } catch (error) {
+      console.error('Error creating itinerary:', error);
+      alert('Error creating itinerary. Please try again.');
+    } finally {
+      setIsLoadingItinerary(false);
+    }
+  };
+
+  const toggleActivitySelection = (dayIndex: number, activityIndex: number) => {
+    if (!itinerary) return;
+    
+    const updatedItinerary = { ...itinerary };
+    updatedItinerary.itinerary[dayIndex].activities[activityIndex].selected = 
+      !updatedItinerary.itinerary[dayIndex].activities[activityIndex].selected;
+    setItinerary(updatedItinerary);
+  };
+
+  const toggleHotelSelection = (hotelIndex: number) => {
+    if (!itinerary) return;
+    
+    const updatedItinerary = { ...itinerary };
+    updatedItinerary.hotels.forEach((hotel: any, index: number) => {
+      hotel.selected = index === hotelIndex;
+    });
+    setItinerary(updatedItinerary);
+  };
+
+  // Main view
   if (currentView === "main") {
     return (
       <div className="min-h-screen bg-background">
@@ -147,6 +258,7 @@ const TravelInterface = () => {
     );
   }
 
+  // Plan Your Trip view
   if (currentView === "plan") {
     return (
       <div className="min-h-screen bg-background p-8">
@@ -244,8 +356,64 @@ const TravelInterface = () => {
                     <Input 
                       id="destination" 
                       placeholder="Enter your desired destination..." 
+                      value={destination}
+                      onChange={(e) => setDestination(e.target.value)}
                       className="text-lg p-4"
                     />
+                    
+                    {/* Real-time destination analysis */}
+                    {isLoadingDestination && (
+                      <div className="mt-3 p-4 bg-accent/20 rounded-lg border flex items-center space-x-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">Analyzing destination...</span>
+                      </div>
+                    )}
+                    
+                    {destinationInfo && !destinationInfo.error && (
+                      <div className="mt-4 space-y-3">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <Card className="p-4">
+                            <h4 className="font-semibold text-sm mb-2 text-primary">🌟 Peak Season</h4>
+                            <p className="text-sm font-medium">{destinationInfo.peakSeason?.months?.join(', ')}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{destinationInfo.peakSeason?.description}</p>
+                            <div className="flex space-x-2 mt-2">
+                              <Badge variant="secondary" className="text-xs">Temp: {destinationInfo.peakSeason?.averageTemp}</Badge>
+                              <Badge variant="outline" className="text-xs">₹{destinationInfo.peakSeason?.priceLevel}</Badge>
+                            </div>
+                          </Card>
+                          
+                          <Card className="p-4">
+                            <h4 className="font-semibold text-sm mb-2 text-adventure">💰 Off-Peak Season</h4>
+                            <p className="text-sm font-medium">{destinationInfo.offPeakSeason?.months?.join(', ')}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{destinationInfo.offPeakSeason?.description}</p>
+                            <div className="flex space-x-2 mt-2">
+                              <Badge variant="secondary" className="text-xs">Temp: {destinationInfo.offPeakSeason?.averageTemp}</Badge>
+                              <Badge variant="outline" className="text-xs">₹{destinationInfo.offPeakSeason?.priceLevel}</Badge>
+                            </div>
+                          </Card>
+                        </div>
+                        
+                        {!destinationInfo.isGoodDestination && destinationInfo.alternativeSuggestions && (
+                          <Card className="p-4 border-orange-200 bg-orange-50">
+                            <h4 className="font-semibold text-sm mb-2 text-orange-700">⚠️ Consider These Alternatives</h4>
+                            <p className="text-sm text-orange-600 mb-2">Based on the season, you might want to consider:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {destinationInfo.alternativeSuggestions.map((alt: string, index: number) => (
+                                <Badge key={index} variant="outline" className="text-xs border-orange-300 text-orange-700">
+                                  {alt}
+                                </Badge>
+                              ))}
+                            </div>
+                          </Card>
+                        )}
+                        
+                        <Card className="p-4 bg-green-50 border-green-200">
+                          <h4 className="font-semibold text-sm mb-2 text-green-700">✨ Best Time to Visit</h4>
+                          <p className="text-sm text-green-600 font-medium">{destinationInfo.bestTimeToVisit?.months?.join(', ')}</p>
+                          <p className="text-xs text-green-600 mt-1">{destinationInfo.bestTimeToVisit?.reason}</p>
+                        </Card>
+                      </div>
+                    )}
                   </div>
 
                   {/* Travel Dates */}
@@ -274,7 +442,6 @@ const TravelInterface = () => {
                               onSelect={setDepartDate}
                               disabled={(date) => date < new Date()}
                               initialFocus
-                              className={cn("p-3 pointer-events-auto")}
                             />
                           </PopoverContent>
                         </Popover>
@@ -301,7 +468,6 @@ const TravelInterface = () => {
                               onSelect={setReturnDate}
                               disabled={(date) => date < new Date() || (departDate && date < departDate)}
                               initialFocus
-                              className={cn("p-3 pointer-events-auto")}
                             />
                           </PopoverContent>
                         </Popover>
@@ -369,53 +535,25 @@ const TravelInterface = () => {
                           variant="outline"
                           className="w-full"
                         >
-                          + Add Another Email
+                          Add Another Email
                         </Button>
                       </div>
-                      <div className="mt-4 p-4 bg-secondary rounded-lg">
-                        <p className="text-sm text-secondary-foreground">
-                          📧 We'll send a Google Form to all group members to collect their preferences for accommodations, activities, and travel style.
-                        </p>
-                      </div>
                     </div>
                   )}
 
-                  {/* Solo Trip Form Link */}
-                  {groupType === "solo" && (
-                    <div className="p-6 bg-gradient-ocean rounded-lg text-white">
-                      <h4 className="font-semibold mb-2">Personalize Your Solo Adventure</h4>
-                      <p className="mb-4 text-white/90">
-                        Complete our personality quiz to get a customized itinerary and accommodation recommendations.
-                      </p>
-                      <Button 
-                        variant="secondary"
-                        className="bg-white text-primary hover:bg-white/90"
-                      >
-                        Take Personality Quiz →
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Timing Recommendation Section */}
-                  <div className="mt-6 p-6 bg-gradient-to-r from-accent/10 to-primary/10 rounded-lg border border-accent/20">
-                    <h4 className="font-semibold mb-2 text-primary">📅 Best Time to Visit Recommendations</h4>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Based on your destination, we'll analyze seasonal patterns, events, and your calendar to suggest optimal travel dates.
-                    </p>
-                    <div className="grid md:grid-cols-2 gap-4 text-sm">
-                      <div className="p-3 bg-card rounded border">
-                        <span className="font-medium text-nature">🌸 Peak Season:</span>
-                        <p className="text-muted-foreground">Best weather, higher prices</p>
-                      </div>
-                      <div className="p-3 bg-card rounded border">
-                        <span className="font-medium text-adventure">🍂 Off-Peak:</span>
-                        <p className="text-muted-foreground">Lower prices, fewer crowds</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button className="w-full bg-gradient-ocean text-white text-lg py-4">
-                    Create My Itinerary with Perfect Timing
+                  <Button 
+                    onClick={handleCreateItinerary}
+                    disabled={!destination || !tripType || !groupType || !departDate || !returnDate || !budget || isLoadingItinerary}
+                    className="w-full bg-gradient-ocean text-white text-lg py-6 hover:scale-105 transition-all duration-300"
+                  >
+                    {isLoadingItinerary ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        Creating Your Perfect Itinerary...
+                      </>
+                    ) : (
+                      "Create My Itinerary with Perfect Timing ✨"
+                    )}
                   </Button>
                 </>
               )}
@@ -427,87 +565,212 @@ const TravelInterface = () => {
     );
   }
 
-  if (currentView === "surprise") {
+  // Itinerary Display View
+  if (currentView === "itinerary" && itinerary) {
     return (
       <div className="min-h-screen bg-background p-8">
-        <div className="container mx-auto max-w-4xl">
+        <div className="container mx-auto max-w-6xl">
           <Button 
-            onClick={() => setCurrentView("main")}
+            onClick={() => setCurrentView("plan")}
             variant="outline" 
             className="mb-8"
           >
-            ← Back to Home
+            ← Back to Planning
           </Button>
           
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-3xl text-center bg-gradient-adventure bg-clip-text text-transparent">
-                Surprise Me with Amazing Destinations
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-8">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div>
-                  <Label htmlFor="budget" className="text-lg font-semibold mb-4 block">
-                    What's your budget range?
-                  </Label>
-                  <Input 
-                    id="budget" 
-                    placeholder="e.g., ₹50,000 - ₹2,00,000" 
-                    className="text-lg p-4"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="season" className="text-lg font-semibold mb-4 block">
-                    Preferred season?
-                  </Label>
-                  <Input 
-                    id="season" 
-                    placeholder="e.g., Summer, Winter, Any" 
-                    className="text-lg p-4"
-                  />
-                </div>
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Main Itinerary */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl bg-gradient-ocean bg-clip-text text-transparent">
+                    Your {itinerary.tripType} Trip to {itinerary.destination}
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    {itinerary.duration} • Estimated Budget: {itinerary.estimatedBudget?.total}
+                  </p>
+                </CardHeader>
+              </Card>
+
+              {/* Daily Itinerary */}
+              <div className="space-y-4">
+                {itinerary.itinerary?.map((day: any, dayIndex: number) => (
+                  <Card key={day.day}>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center space-x-2">
+                        <CalendarIcon className="w-5 h-5" />
+                        <span>Day {day.day}: {day.title}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {day.activities?.map((activity: any, activityIndex: number) => (
+                          <div key={activityIndex} className="flex items-start space-x-3 p-3 border rounded-lg">
+                            <Checkbox 
+                              checked={activity.selected || false}
+                              onCheckedChange={() => toggleActivitySelection(dayIndex, activityIndex)}
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <Clock className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">{activity.time}</span>
+                                <Badge variant="outline" className="text-xs">{activity.duration}</Badge>
+                              </div>
+                              <h4 className="font-semibold">{activity.activity}</h4>
+                              <p className="text-sm text-muted-foreground mb-2">{activity.description}</p>
+                              <div className="flex items-center space-x-2">
+                                <LocationPin className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm">{activity.location}</span>
+                                <Badge variant="secondary" className="text-xs">{activity.estimatedCost}</Badge>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
+            </div>
 
-              <div>
-                <Label htmlFor="preferences" className="text-lg font-semibold mb-4 block">
-                  Any specific preferences? (Optional)
-                </Label>
-                <Textarea 
-                  id="preferences"
-                  placeholder="Beach, mountains, culture, adventure, food, etc."
-                  className="min-h-24"
-                />
-              </div>
-
-              <Button className="w-full bg-gradient-adventure text-white text-lg py-4">
-                🎲 Surprise Me with Destinations!
-              </Button>
-
-              {/* Sample Results */}
-              <div className="mt-8 p-6 border rounded-lg bg-muted/30">
-                <h4 className="font-semibold mb-4 text-adventure">🌟 Sample Seasonal Recommendations</h4>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-card rounded border">
-                    <Badge className="mb-2 bg-nature text-nature-foreground">Spring Perfect</Badge>
-                    <h5 className="font-medium">Japan Cherry Blossom Tour</h5>
-                    <p className="text-sm text-muted-foreground">Tokyo, Kyoto, Osaka • 10 days</p>
+            {/* Sidebar with Hotels, Cuisine, etc. */}
+            <div className="space-y-6">
+              {/* Budget Breakdown */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center space-x-2">
+                    <IndianRupee className="w-5 h-5" />
+                    <span>Budget Breakdown</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {Object.entries(itinerary.estimatedBudget?.breakdown || {}).map(([key, value]) => (
+                      <div key={key} className="flex justify-between text-sm">
+                        <span className="capitalize">{key}:</span>
+                        <span className="font-medium">{value as string}</span>
+                      </div>
+                    ))}
+                    <div className="border-t pt-2 mt-3">
+                      <div className="flex justify-between font-semibold">
+                        <span>Total:</span>
+                        <span>{itinerary.estimatedBudget?.total}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-4 bg-card rounded border">
-                    <Badge className="mb-2 bg-adventure text-adventure-foreground">Summer Vibes</Badge>
-                    <h5 className="font-medium">Greek Island Hopping</h5>
-                    <p className="text-sm text-muted-foreground">Santorini, Mykonos • 8 days</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+
+              {/* Hotel Recommendations */}
+              {itinerary.hotels && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Hotel Recommendations</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {itinerary.hotels.map((hotel: any, index: number) => (
+                        <div key={index} className="p-3 border rounded-lg">
+                          <div className="flex items-start space-x-3">
+                            <Checkbox 
+                              checked={hotel.selected || false}
+                              onCheckedChange={() => toggleHotelSelection(index)}
+                            />
+                            <div className="flex-1">
+                              <h4 className="font-semibold">{hotel.name}</h4>
+                              <p className="text-sm text-muted-foreground">{hotel.location}</p>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <Badge variant="outline" className="text-xs">{hotel.category}</Badge>
+                                <Badge variant="secondary" className="text-xs">{hotel.pricePerNight}/night</Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-2">{hotel.whyRecommended}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Local Cuisine */}
+              {itinerary.localCuisine && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center space-x-2">
+                      <Utensils className="w-5 h-5" />
+                      <span>Local Cuisine</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {itinerary.localCuisine.map((dish: any, index: number) => (
+                        <div key={index} className="p-3 bg-accent/20 rounded-lg">
+                          <h4 className="font-semibold text-sm">{dish.dish}</h4>
+                          <p className="text-xs text-muted-foreground mb-1">{dish.description}</p>
+                          <p className="text-xs text-primary">{dish.whereToFind}</p>
+                          <Badge variant="outline" className="text-xs mt-1">{dish.estimatedCost}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Flight Recommendations */}
+              {itinerary.flightRecommendations && needsFlights && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center space-x-2">
+                      <Plane className="w-5 h-5" />
+                      <span>Flight Options</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {itinerary.flightRecommendations.map((flight: any, index: number) => (
+                        <div key={index} className="p-3 border rounded-lg">
+                          <h4 className="font-semibold text-sm">{flight.airline}</h4>
+                          <p className="text-sm text-muted-foreground">{flight.route}</p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">{flight.estimatedPrice}</Badge>
+                            <Badge variant="outline" className="text-xs">{flight.duration}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">{flight.recommendation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Important Tips */}
+              {itinerary.importantTips && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">💡 Important Tips</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {itinerary.importantTips.map((tip: string, index: number) => (
+                        <li key={index} className="text-sm flex items-start space-x-2">
+                          <span className="text-primary mt-1">•</span>
+                          <span>{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
         </div>
         <ChatBot />
       </div>
     );
   }
 
+  // Image Identification View
   if (currentView === "identify") {
     return (
       <div className="min-h-screen bg-background p-8">
@@ -526,72 +789,305 @@ const TravelInterface = () => {
                 Identify Your Dream Destination
               </CardTitle>
               <p className="text-center text-muted-foreground">
-                Upload a photo and let AI discover travel information about that place
+                Upload an image and let AI discover everything about that place
               </p>
             </CardHeader>
             <CardContent className="space-y-8">
-              {/* Image Upload Area */}
-              <div className="border-2 border-dashed border-muted rounded-lg p-12 text-center">
-                {uploadedImage ? (
-                  <div className="space-y-4">
-                    <img 
-                      src={uploadedImage} 
-                      alt="Uploaded destination" 
-                      className="max-h-64 mx-auto rounded-lg shadow-lg"
-                    />
-                    <Button 
-                      onClick={() => setUploadedImage(null)}
-                      variant="outline"
-                    >
-                      Upload Different Image
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <Upload className="w-16 h-16 text-muted-foreground mx-auto" />
-                    <div>
-                      <Label htmlFor="image-upload" className="text-lg font-semibold cursor-pointer">
-                        Click to upload or drag and drop
-                      </Label>
-                      <p className="text-muted-foreground">PNG, JPG up to 10MB</p>
-                      <Input
-                        id="image-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                    </div>
-                  </div>
-                )}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label htmlFor="image-upload" className="cursor-pointer">
+                  <Upload className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-medium mb-2">Upload Your Photo</p>
+                  <p className="text-muted-foreground">Drag and drop or click to select an image</p>
+                </label>
               </div>
 
               {uploadedImage && (
-                <>
-                  <Button className="w-full bg-gradient-nature text-white text-lg py-4">
-                    🔍 Identify This Place with AI
-                  </Button>
+                <div className="text-center">
+                  <img 
+                    src={uploadedImage} 
+                    alt="Uploaded" 
+                    className="max-w-md mx-auto rounded-lg shadow-lg"
+                  />
+                </div>
+              )}
 
-                  {/* Sample AI Results */}
-                  <div className="mt-8 p-6 border rounded-lg bg-muted/30">
-                    <h4 className="font-semibold mb-4 text-nature">🤖 AI Analysis Results</h4>
-                    <div className="space-y-4">
-                      <div className="p-4 bg-card rounded border">
-                        <h5 className="font-medium text-nature">📍 Location Identified</h5>
-                        <p className="text-sm">Santorini, Greece - Oia Village</p>
+              {isLoadingImageAnalysis && (
+                <div className="text-center p-8">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                  <p className="text-lg">Analyzing your image with AI...</p>
+                  <p className="text-muted-foreground">This may take a few moments</p>
+                </div>
+              )}
+
+              {imageAnalysis && !imageAnalysis.error && (
+                <div className="space-y-6">
+                  <Card className="p-6 bg-gradient-to-r from-nature/10 to-adventure/10">
+                    <h3 className="text-2xl font-bold mb-4 text-center">
+                      📍 {imageAnalysis.identifiedPlace}
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p><strong>Country:</strong> {imageAnalysis.country}</p>
+                        <p><strong>City:</strong> {imageAnalysis.city}</p>
+                        {imageAnalysis.state && <p><strong>State:</strong> {imageAnalysis.state}</p>}
                       </div>
-                      <div className="p-4 bg-card rounded border">
-                        <h5 className="font-medium text-adventure">💰 Estimated Budget</h5>
-                        <p className="text-sm">$3,500 - $5,000 for 7 days (luxury experience)</p>
-                      </div>
-                      <div className="p-4 bg-card rounded border">
-                        <h5 className="font-medium text-primary">📅 Best Time to Visit</h5>
-                        <p className="text-sm">April-June, September-October</p>
+                      <div>
+                        <p><strong>Confidence:</strong> 
+                          <Badge className={`ml-2 ${
+                            imageAnalysis.confidence === 'high' ? 'bg-green-100 text-green-700' :
+                            imageAnalysis.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {imageAnalysis.confidence}
+                          </Badge>
+                        </p>
                       </div>
                     </div>
+                    <p className="text-muted-foreground">{imageAnalysis.description}</p>
+                  </Card>
+
+                  {imageAnalysis.estimatedBudget && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center space-x-2">
+                          <IndianRupee className="w-5 h-5" />
+                          <span>Estimated Budget</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-lg font-semibold mb-4">{imageAnalysis.estimatedBudget.budget}</p>
+                        <div className="grid grid-cols-2 gap-4">
+                          {Object.entries(imageAnalysis.estimatedBudget.breakdown || {}).map(([key, value]) => (
+                            <div key={key} className="flex justify-between p-2 bg-accent/20 rounded">
+                              <span className="capitalize">{key}:</span>
+                              <span className="font-medium">{value as string}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {imageAnalysis.nearbyAttractions && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>🎯 Nearby Attractions</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {imageAnalysis.nearbyAttractions.map((attraction: any, index: number) => (
+                              <div key={index} className="p-3 bg-accent/20 rounded-lg">
+                                <h4 className="font-semibold text-sm">{attraction.name}</h4>
+                                <p className="text-xs text-muted-foreground">{attraction.description}</p>
+                                <Badge variant="outline" className="text-xs mt-1">{attraction.distance}</Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {imageAnalysis.bestTimeToVisit && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>⏰ Best Time to Visit</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="font-semibold">{imageAnalysis.bestTimeToVisit.months?.join(', ')}</p>
+                          <p className="text-sm text-muted-foreground mt-2">{imageAnalysis.bestTimeToVisit.reason}</p>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
-                </>
+
+                  {imageAnalysis.suggestedItinerary && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>🗓️ Suggested Itinerary</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {imageAnalysis.suggestedItinerary.map((day: any, index: number) => (
+                            <div key={index} className="border-l-4 border-primary pl-4">
+                              <h4 className="font-semibold mb-2">Day {day.day}</h4>
+                              <div className="space-y-2">
+                                {day.activities?.map((activity: any, actIndex: number) => (
+                                  <div key={actIndex} className="p-2 bg-accent/10 rounded">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm font-medium">{activity.activity}</span>
+                                      <div className="flex space-x-2">
+                                        <Badge variant="outline" className="text-xs">{activity.duration}</Badge>
+                                        <Badge variant="secondary" className="text-xs">{activity.cost}</Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {imageAnalysis.localCuisine && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm">🍽️ Local Cuisine</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            {imageAnalysis.localCuisine.map((dish: string, index: number) => (
+                              <Badge key={index} variant="outline" className="text-xs block text-center py-1">
+                                {dish}
+                              </Badge>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {imageAnalysis.transportationOptions && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm">🚗 Transportation</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            {imageAnalysis.transportationOptions.map((option: string, index: number) => (
+                              <Badge key={index} variant="outline" className="text-xs block text-center py-1">
+                                {option}
+                              </Badge>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {imageAnalysis.importantTips && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm">💡 Tips</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-1">
+                            {imageAnalysis.importantTips.slice(0, 3).map((tip: string, index: number) => (
+                              <li key={index} className="text-xs flex items-start">
+                                <span className="text-primary mr-1">•</span>
+                                <span>{tip}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+
+                  <div className="text-center pt-6">
+                    <Button 
+                      onClick={() => {
+                        setDestination(imageAnalysis.identifiedPlace);
+                        setCurrentView('plan');
+                      }}
+                      className="bg-gradient-nature text-white px-8 py-3 text-lg hover:scale-105 transition-all duration-300"
+                    >
+                      Plan My Trip to {imageAnalysis.identifiedPlace} 🚀
+                    </Button>
+                  </div>
+                </div>
               )}
+            </CardContent>
+          </Card>
+        </div>
+        <ChatBot />
+      </div>
+    );
+  }
+
+  // Surprise Me View
+  if (currentView === "surprise") {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="container mx-auto max-w-4xl">
+          <Button 
+            onClick={() => setCurrentView("main")}
+            variant="outline" 
+            className="mb-8"
+          >
+            ← Back to Home
+          </Button>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-3xl text-center bg-gradient-adventure bg-clip-text text-transparent">
+                Surprise Me with an Adventure
+              </CardTitle>
+              <p className="text-center text-muted-foreground">
+                Let AI suggest amazing seasonal destinations based on your preferences
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="surprise-budget" className="text-lg font-semibold mb-4 block">
+                    What's your budget?
+                  </Label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input 
+                      id="surprise-budget" 
+                      placeholder="e.g., ₹50,000 - ₹2,00,000" 
+                      className="text-lg p-4 pl-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-lg font-semibold mb-4 block">Trip Type Preference</Label>
+                  <RadioGroup>
+                    <div className="flex items-center space-x-2 p-2 border rounded-lg">
+                      <RadioGroupItem value="any" id="any" />
+                      <Label htmlFor="any" className="flex items-center space-x-2 cursor-pointer">
+                        <Sparkles className="w-4 h-4" />
+                        <span>Surprise me completely!</span>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-2 border rounded-lg">
+                      <RadioGroupItem value="leisure" id="surprise-leisure" />
+                      <Label htmlFor="surprise-leisure" className="flex items-center space-x-2 cursor-pointer">
+                        <Plane className="w-4 h-4" />
+                        <span>Leisure focused</span>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-2 border rounded-lg">
+                      <RadioGroupItem value="adventure" id="surprise-adventure" />
+                      <Label htmlFor="surprise-adventure" className="flex items-center space-x-2 cursor-pointer">
+                        <Mountain className="w-4 h-4" />
+                        <span>Adventure focused</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+
+              <Button className="w-full bg-gradient-adventure text-white text-lg py-6 hover:scale-105 transition-all duration-300">
+                Surprise Me with Perfect Destinations! ✨
+              </Button>
+
+              <div className="text-center text-muted-foreground">
+                <p className="text-sm">
+                  Coming soon: AI-powered seasonal recommendations based on current weather patterns, 
+                  local events, and the best value destinations for your budget!
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
