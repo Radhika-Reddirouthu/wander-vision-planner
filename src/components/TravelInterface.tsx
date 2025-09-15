@@ -23,7 +23,7 @@ import {
   Briefcase,
   Upload,
   Mail,
-  DollarSign
+  IndianRupee
 } from "lucide-react";
 import heroImage from "@/assets/hero-travel.jpg";
 import ChatBot from "./ChatBot";
@@ -315,10 +315,10 @@ const TravelInterface = () => {
                       What's your budget?
                     </Label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                       <Input
                         id="budget"
-                        placeholder="e.g., 2000 - 5000"
+                        placeholder="e.g., ₹50,000 - ₹2,00,000"
                         value={budget}
                         onChange={(e) => setBudget(e.target.value)}
                         className="text-lg p-4 pl-10"
@@ -453,7 +453,7 @@ const TravelInterface = () => {
                   </Label>
                   <Input 
                     id="budget" 
-                    placeholder="e.g., $2000 - $5000" 
+                    placeholder="e.g., ₹50,000 - ₹2,00,000" 
                     className="text-lg p-4"
                   />
                 </div>
