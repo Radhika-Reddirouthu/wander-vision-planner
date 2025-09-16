@@ -30,7 +30,10 @@ import {
   Clock,
   Star,
   MapPin as LocationPin,
-  Utensils
+  Utensils,
+  Calendar as CalendarDays,
+  Thermometer,
+  Info
 } from "lucide-react";
 import heroImage from "@/assets/hero-travel.jpg";
 import ChatBot from "./ChatBot";
@@ -362,49 +365,79 @@ const TravelInterface = () => {
                     )}
                     
                     {destinationInfo && !destinationInfo.error && (
-                      <div className="mt-4 space-y-3">
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <Card className="p-4">
-                            <h4 className="font-semibold text-sm mb-2 text-primary">🌟 Peak Season</h4>
-                            <p className="text-sm font-medium">{destinationInfo.peakSeason?.months?.join(', ')}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{destinationInfo.peakSeason?.description}</p>
-                            <div className="flex space-x-2 mt-2">
-                              <Badge variant="secondary" className="text-xs">Temp: {destinationInfo.peakSeason?.averageTemp}</Badge>
-                              <Badge variant="outline" className="text-xs">₹{destinationInfo.peakSeason?.priceLevel}</Badge>
-                            </div>
-                          </Card>
+                      <Card className="mt-4">
+                        <CardHeader>
+                          <CardTitle className="flex items-center space-x-2">
+                            <MapPin className="w-5 h-5 text-primary" />
+                            <span>{destinationInfo.name}</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <p className="text-muted-foreground">{destinationInfo.description}</p>
                           
-                          <Card className="p-4">
-                            <h4 className="font-semibold text-sm mb-2 text-adventure">💰 Off-Peak Season</h4>
-                            <p className="text-sm font-medium">{destinationInfo.offPeakSeason?.months?.join(', ')}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{destinationInfo.offPeakSeason?.description}</p>
-                            <div className="flex space-x-2 mt-2">
-                              <Badge variant="secondary" className="text-xs">Temp: {destinationInfo.offPeakSeason?.averageTemp}</Badge>
-                              <Badge variant="outline" className="text-xs">₹{destinationInfo.offPeakSeason?.priceLevel}</Badge>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <h4 className="font-semibold mb-2 flex items-center">
+                                <CalendarDays className="w-4 h-4 mr-2" />
+                                Best Time to Visit
+                              </h4>
+                              <p className="text-sm text-muted-foreground">{destinationInfo.bestTimeToVisit}</p>
                             </div>
-                          </Card>
-                        </div>
-                        
-                        {!destinationInfo.isGoodDestination && destinationInfo.alternativeSuggestions && (
-                          <Card className="p-4 border-orange-200 bg-orange-50">
-                            <h4 className="font-semibold text-sm mb-2 text-orange-700">⚠️ Consider These Alternatives</h4>
-                            <p className="text-sm text-orange-600 mb-2">Based on the season, you might want to consider:</p>
-                            <div className="flex flex-wrap gap-2">
-                              {destinationInfo.alternativeSuggestions.map((alt: string, index: number) => (
-                                <Badge key={index} variant="outline" className="text-xs border-orange-300 text-orange-700">
-                                  {alt}
-                                </Badge>
+                            
+                            <div>
+                              <h4 className="font-semibold mb-2 flex items-center">
+                                <Thermometer className="w-4 h-4 mr-2" />
+                                Climate
+                              </h4>
+                              <p className="text-sm text-muted-foreground">{destinationInfo.climate}</p>
+                            </div>
+                          </div>
+
+                          {destinationInfo.upcomingLongWeekends && destinationInfo.upcomingLongWeekends.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold mb-2 flex items-center">
+                                <CalendarDays className="w-4 h-4 mr-2" />
+                                Upcoming Long Weekends
+                              </h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                {destinationInfo.upcomingLongWeekends.map((weekend, index) => (
+                                  <div key={index} className="bg-gradient-ocean/10 rounded-lg p-3 border border-primary/20">
+                                    <p className="font-medium text-sm">{weekend.name}</p>
+                                    <p className="text-xs text-muted-foreground">{weekend.dates}</p>
+                                    <span className="inline-block mt-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                                      {weekend.type}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div>
+                            <h4 className="font-semibold mb-2 flex items-center">
+                              <Star className="w-4 h-4 mr-2" />
+                              Top Highlights
+                            </h4>
+                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                              {destinationInfo.highlights?.map((highlight, index) => (
+                                <li key={index}>{highlight}</li>
                               ))}
-                            </div>
-                          </Card>
-                        )}
-                        
-                        <Card className="p-4 bg-green-50 border-green-200">
-                          <h4 className="font-semibold text-sm mb-2 text-green-700">✨ Best Time to Visit</h4>
-                          <p className="text-sm text-green-600 font-medium">{destinationInfo.bestTimeToVisit?.months?.join(', ')}</p>
-                          <p className="text-xs text-green-600 mt-1">{destinationInfo.bestTimeToVisit?.reason}</p>
-                        </Card>
-                      </div>
+                            </ul>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-semibold mb-2 flex items-center">
+                              <Info className="w-4 h-4 mr-2" />
+                              Travel Tips
+                            </h4>
+                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                              {destinationInfo.travelTips?.map((tip, index) => (
+                                <li key={index}>{tip}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </CardContent>
+                      </Card>
                     )}
                   </div>
 

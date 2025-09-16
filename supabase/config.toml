@@ -1,1 +1,13 @@
 project_id = "blopjzszhewzjlubvktk"
+
+[functions.chat-assistant]
+verify_jwt = false
+
+[functions.get-destination-info]
+verify_jwt = false
+
+[functions.create-itinerary]
+verify_jwt = false
+
+[functions.identify-place]
+verify_jwt = false
