@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
-import { getSupabase } from '@/lib/supabaseClient';
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   id: string;
@@ -42,8 +42,6 @@ const ChatBot = () => {
     setIsLoading(true);
 
     try {
-      const supabase = getSupabase();
-      if (!supabase) throw new Error('Supabase not configured');
       const { data, error } = await supabase.functions.invoke('chat-assistant', {
         body: { 
           message: currentInput,

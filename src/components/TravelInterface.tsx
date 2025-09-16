@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getSupabase } from '@/lib/supabaseClient';
+import { supabase } from "@/integrations/supabase/client";
 import { 
   MapPin, 
   Users, 
@@ -59,8 +59,6 @@ const TravelInterface = () => {
       if (destination.length > 2) {
         setIsLoadingDestination(true);
         try {
-          const supabase = getSupabase();
-          if (!supabase) throw new Error('Supabase not configured');
           const { data, error } = await supabase.functions.invoke('get-destination-info', {
             body: { destination }
           });
@@ -99,8 +97,6 @@ const TravelInterface = () => {
         // Analyze the image with Gemini Vision
         setIsLoadingImageAnalysis(true);
         try {
-          const supabase = getSupabase();
-          if (!supabase) throw new Error('Supabase not configured');
           const { data, error } = await supabase.functions.invoke('identify-place', {
             body: { imageBase64 }
           });
@@ -124,8 +120,6 @@ const TravelInterface = () => {
 
     setIsLoadingItinerary(true);
     try {
-      const supabase = getSupabase();
-      if (!supabase) throw new Error('Supabase not configured');
       const { data, error } = await supabase.functions.invoke('create-itinerary', {
         body: {
           destination,
