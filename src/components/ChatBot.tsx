@@ -7,8 +7,8 @@ import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+  'https://aclzqpfadwzqtkmhyhrp.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjbHpxcGZhZHd6cXRrbWh5aHJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwNDMxNzQsImV4cCI6MjA3MzYxOTE3NH0.cw1fxdWJGqNqq4GdGLMh31PUuBBd_0_HaQ1EuT40vWA'
 );
 
 interface Message {
