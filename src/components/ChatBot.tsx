@@ -4,12 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  'https://aclzqpfadwzqtkmhyhrp.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjbHpxcGZhZHd6cXRrbWh5aHJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwNDMxNzQsImV4cCI6MjA3MzYxOTE3NH0.cw1fxdWJGqNqq4GdGLMh31PUuBBd_0_HaQ1EuT40vWA'
-);
+import { getSupabase } from '@/lib/supabaseClient';
 
 interface Message {
   id: string;
@@ -47,13 +42,14 @@ const ChatBot = () => {
     setIsLoading(true);
 
     try {
+      const supabase = getSupabase();
+      if (!supabase) throw new Error('Supabase not configured');
       const { data, error } = await supabase.functions.invoke('chat-assistant', {
         body: { 
           message: currentInput,
           conversationHistory: messages.slice(-10) // Send last 10 messages for context
         }
       });
-      
       if (error) throw error;
 
       const botResponse: Message = {

@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from '@/lib/supabaseClient';
 import { 
   MapPin, 
   Users, 
@@ -34,12 +34,6 @@ import {
 } from "lucide-react";
 import heroImage from "@/assets/hero-travel.jpg";
 import ChatBot from "./ChatBot";
-
-// Initialize Supabase client using Lovable's native integration
-const supabase = createClient(
-  'https://aclzqpfadwzqtkmhyhrp.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjbHpxcGZhZHd6cXRrbWh5aHJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwNDMxNzQsImV4cCI6MjA3MzYxOTE3NH0.cw1fxdWJGqNqq4GdGLMh31PUuBBd_0_HaQ1EuT40vWA'
-);
 
 const TravelInterface = () => {
   const [tripType, setTripType] = useState("");
@@ -65,10 +59,11 @@ const TravelInterface = () => {
       if (destination.length > 2) {
         setIsLoadingDestination(true);
         try {
+          const supabase = getSupabase();
+          if (!supabase) throw new Error('Supabase not configured');
           const { data, error } = await supabase.functions.invoke('get-destination-info', {
             body: { destination }
           });
-          
           if (error) throw error;
           setDestinationInfo(data);
         } catch (error) {
@@ -104,10 +99,11 @@ const TravelInterface = () => {
         // Analyze the image with Gemini Vision
         setIsLoadingImageAnalysis(true);
         try {
+          const supabase = getSupabase();
+          if (!supabase) throw new Error('Supabase not configured');
           const { data, error } = await supabase.functions.invoke('identify-place', {
             body: { imageBase64 }
           });
-          
           if (error) throw error;
           setImageAnalysis(data);
         } catch (error) {
@@ -128,6 +124,8 @@ const TravelInterface = () => {
 
     setIsLoadingItinerary(true);
     try {
+      const supabase = getSupabase();
+      if (!supabase) throw new Error('Supabase not configured');
       const { data, error } = await supabase.functions.invoke('create-itinerary', {
         body: {
           destination,
