@@ -26,6 +26,35 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
+  // Surface OAuth errors returned via query or hash
+  useEffect(() => {
+    const showError = (msg: string) => {
+      toast({
+        title: "Google Sign-in Error",
+        description: msg,
+        variant: "destructive",
+      });
+    };
+
+    // Check query params
+    const search = new URLSearchParams(window.location.search);
+    const qErr = search.get('error_description') || search.get('error');
+
+    // Check hash params (#)
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const hErr = hash.get('error_description') || hash.get('error');
+
+    const err = qErr || hErr;
+    if (err) {
+      showError(decodeURIComponent(err));
+      // Clean the URL to avoid repeated toasts
+      const url = new URL(window.location.href);
+      url.searchParams.delete('error');
+      url.searchParams.delete('error_description');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    }
+  }, [toast]);
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
