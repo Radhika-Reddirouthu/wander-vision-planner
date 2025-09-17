@@ -111,7 +111,7 @@ serve(async (req) => {
 
 Focus on practical travel advice and make the information helpful for Indian travelers. Include seasonal considerations, weather patterns, and any special events or festivals. Mention which of the upcoming long weekends would be ideal for visiting this destination.`
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

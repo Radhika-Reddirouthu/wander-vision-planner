@@ -68,7 +68,7 @@ serve(async (req) => {
     
     If you cannot identify the place with confidence, indicate low confidence and provide general advice based on what you can see in the image.`
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
