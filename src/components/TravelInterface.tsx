@@ -182,7 +182,6 @@ const TravelInterface = () => {
       setIsLoadingItinerary(false);
     }
   };
-  };
 
   const toggleActivitySelection = (dayIndex: number, activityIndex: number) => {
     if (!itinerary) return;
@@ -1205,6 +1204,7 @@ const TravelInterface = () => {
     );
   }
 
+  // Handle creating itinerary with poll results
   const handleCreateItineraryWithPollResults = async (pollResults: any) => {
     if (!destination || !departDate || !returnDate || !budget) return;
     
