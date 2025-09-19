@@ -33,7 +33,11 @@ import {
   Utensils,
   Calendar as CalendarDays,
   Thermometer,
-  Info
+  Info,
+  Plus,
+  Shield,
+  CheckCircle,
+  AlertTriangle
 } from "lucide-react";
 import heroImage from "@/assets/hero-travel.jpg";
 import ChatBot from "./ChatBot";
@@ -215,10 +219,10 @@ const TravelInterface = () => {
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative z-10 text-center text-white px-4">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-sunset bg-clip-text text-transparent">
-              Wanderlust Awaits
+              Discover Your Perfect Journey
             </h1>
             <p className="text-xl md:text-2xl mb-12 text-white/90">
-              Discover your perfect adventure with personalized travel experiences
+              AI-powered travel planning with real-time weather insights and perfect timing recommendations
             </p>
           </div>
         </div>
@@ -232,9 +236,9 @@ const TravelInterface = () => {
                 <div className="w-20 h-20 bg-gradient-ocean rounded-full flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 shadow-elegant">
                   <MapPin className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-foreground">Plan Your Trip</h3>
+                <h3 className="text-2xl font-bold mb-4 text-foreground">Smart Trip Planner</h3>
                 <p className="text-muted-foreground mb-8 leading-relaxed">
-                  Choose your destination, trip type, and get personalized itineraries with perfect timing recommendations
+                  Get AI-powered itineraries with real-time weather analysis, safety checks, and perfect timing recommendations for your chosen destination
                 </p>
                 <Button 
                   onClick={() => setCurrentView("plan")}
@@ -252,9 +256,9 @@ const TravelInterface = () => {
                 <div className="w-20 h-20 bg-gradient-adventure rounded-full flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 shadow-elegant">
                   <Sparkles className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-foreground">Surprise Me</h3>
+                <h3 className="text-2xl font-bold mb-4 text-foreground">Seasonal Surprises</h3>
                 <p className="text-muted-foreground mb-8 leading-relaxed">
-                  Get seasonal recommendations based on your budget and preferences for unexpected adventures
+                  Let AI discover amazing destinations based on current weather patterns, seasonal events, and your budget preferences
                 </p>
                 <Button 
                   onClick={() => setCurrentView("surprise")}
@@ -271,9 +275,9 @@ const TravelInterface = () => {
                 <div className="w-20 h-20 bg-gradient-nature rounded-full flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 shadow-elegant">
                   <Camera className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-foreground">Identify Place</h3>
+                <h3 className="text-2xl font-bold mb-4 text-foreground">AI Place Detective</h3>
                 <p className="text-muted-foreground mb-8 leading-relaxed">
-                  Upload an image and discover comprehensive travel information about that location
+                  Upload any photo and instantly get detailed travel insights, safety updates, and perfect timing advice for that location
                 </p>
                 <Button 
                   onClick={() => setCurrentView("identify")}
@@ -306,7 +310,7 @@ const TravelInterface = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-3xl text-center bg-gradient-ocean bg-clip-text text-transparent">
-                Plan Your Perfect Trip
+                Create Your Dream Journey
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-8">
@@ -407,16 +411,73 @@ const TravelInterface = () => {
                           <CardTitle className="flex items-center space-x-2">
                             <MapPin className="w-5 h-5 text-primary" />
                             <span>{destinationInfo.name}</span>
+                            {destinationInfo.isRecommendedNow ? (
+                              <Badge className="bg-green-500 text-white">Perfect Time!</Badge>
+                            ) : (
+                              <Badge variant="outline" className="border-orange-500 text-orange-500">Check Conditions</Badge>
+                            )}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <p className="text-muted-foreground">{destinationInfo.description}</p>
                           
+                          {/* Travel Safety Status */}
+                          {destinationInfo.travelSafetyStatus && (
+                            <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                              <h4 className="font-semibold mb-2 flex items-center text-blue-700 dark:text-blue-300">
+                                <Shield className="w-4 h-4 mr-2" />
+                                Current Travel Safety Status
+                              </h4>
+                              <p className="text-sm text-blue-700 dark:text-blue-300">{destinationInfo.travelSafetyStatus}</p>
+                            </div>
+                          )}
+
+                          {/* Current Season Advice */}
+                          {destinationInfo.currentSeasonAdvice && (
+                            <div className={`p-4 rounded-lg border ${destinationInfo.isRecommendedNow 
+                              ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
+                              : 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800'}`}>
+                              <h4 className={`font-semibold mb-2 flex items-center ${destinationInfo.isRecommendedNow 
+                                ? 'text-green-700 dark:text-green-300' 
+                                : 'text-orange-700 dark:text-orange-300'}`}>
+                                <Clock className="w-4 h-4 mr-2" />
+                                Current Season Advice
+                              </h4>
+                              <p className={`text-sm ${destinationInfo.isRecommendedNow 
+                                ? 'text-green-700 dark:text-green-300' 
+                                : 'text-orange-700 dark:text-orange-300'}`}>
+                                {destinationInfo.currentSeasonAdvice}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Recommendation Status */}
+                          {destinationInfo.reasonForRecommendation && (
+                            <div className={`p-4 rounded-lg border ${destinationInfo.isRecommendedNow 
+                              ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
+                              : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'}`}>
+                              <h4 className={`font-semibold mb-2 flex items-center ${destinationInfo.isRecommendedNow 
+                                ? 'text-green-700 dark:text-green-300' 
+                                : 'text-red-700 dark:text-red-300'}`}>
+                                {destinationInfo.isRecommendedNow ? (
+                                  <><CheckCircle className="w-4 h-4 mr-2" />Why This is Perfect Timing</>
+                                ) : (
+                                  <><AlertTriangle className="w-4 h-4 mr-2" />Important Considerations</>
+                                )}
+                              </h4>
+                              <p className={`text-sm ${destinationInfo.isRecommendedNow 
+                                ? 'text-green-700 dark:text-green-300' 
+                                : 'text-red-700 dark:text-red-300'}`}>
+                                {destinationInfo.reasonForRecommendation}
+                              </p>
+                            </div>
+                          )}
+                          
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <h4 className="font-semibold mb-2 flex items-center">
                                 <CalendarDays className="w-4 h-4 mr-2" />
-                                Best Time to Visit
+                                Optimal Visit Timing
                               </h4>
                               <p className="text-sm text-muted-foreground">{destinationInfo.bestTimeToVisit}</p>
                             </div>
@@ -424,7 +485,7 @@ const TravelInterface = () => {
                             <div>
                               <h4 className="font-semibold mb-2 flex items-center">
                                 <Thermometer className="w-4 h-4 mr-2" />
-                                Climate
+                                Climate Details
                               </h4>
                               <p className="text-sm text-muted-foreground">{destinationInfo.climate}</p>
                             </div>
@@ -619,48 +680,57 @@ const TravelInterface = () => {
                         )}
                       </div>
 
-                      {/* Group Member Emails */}
-                      <div>
-                        <Label className="text-lg font-semibold mb-4 block">
-                          {enableGroupPolling ? "Group Member Email Addresses (for polling)" : "Group Member Email Addresses"}
-                        </Label>
-                        <div className="space-y-3">
-                          {emails.map((email, index) => (
-                            <div key={index} className="flex items-center space-x-2">
-                              <Mail className="w-5 h-5 text-muted-foreground" />
-                              <Input
-                                placeholder={`Email ${index + 1}`}
-                                value={email}
-                                onChange={(e) => updateEmail(index, e.target.value)}
-                                className="flex-1"
-                                type="email"
-                              />
-                            </div>
-                          ))}
-                          <Button 
-                            onClick={addEmailField}
-                            variant="outline"
-                            className="w-full"
-                          >
-                            Add Another Email
-                          </Button>
+                      {/* Group Member Emails - Only show when polling is enabled */}
+                      {enableGroupPolling && (
+                        <div>
+                          <Label className="text-lg font-semibold mb-4 block">
+                            Group Member Email Addresses (for voting)
+                          </Label>
+                          <div className="space-y-3">
+                            {emails.map((email, index) => (
+                              <div key={index} className="flex items-center space-x-2">
+                                <Mail className="w-5 h-5 text-muted-foreground" />
+                                <Input
+                                  placeholder={`Group member email ${index + 1}`}
+                                  value={email}
+                                  onChange={(e) => updateEmail(index, e.target.value)}
+                                  className="flex-1"
+                                  type="email"
+                                />
+                              </div>
+                            ))}
+                            <Button 
+                              onClick={addEmailField}
+                              variant="outline"
+                              className="w-full"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Add Another Member
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
 
                   <Button 
                     onClick={handleCreateItinerary}
-                    disabled={!destination || !tripType || !groupType || !departDate || !returnDate || !budget || isLoadingItinerary}
+                    disabled={!destination || !tripType || !groupType || !departDate || !returnDate || !budget || isLoadingItinerary || (groupType === "group" && enableGroupPolling && (!organizerEmail || emails.filter(email => email.trim()).length === 0))}
                     className="w-full bg-gradient-ocean text-white text-lg py-6 hover:scale-105 transition-all duration-300"
                   >
                     {isLoadingItinerary ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                        Creating Your Perfect Itinerary...
+                        {enableGroupPolling && groupType === "group" ? "Setting up group voting..." : "Crafting your perfect adventure..."}
                       </>
                     ) : (
-                      "Create My Itinerary with Perfect Timing ✨"
+                      <>
+                        {enableGroupPolling && groupType === "group" ? (
+                          "🗳️ Create Group Poll & Itinerary"
+                        ) : (
+                          "🚀 Create My Perfect Itinerary"
+                        )}
+                      </>
                     )}
                   </Button>
                 </>
@@ -692,11 +762,65 @@ const TravelInterface = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-2xl bg-gradient-ocean bg-clip-text text-transparent">
-                    Your {itinerary.tripType} Trip to {itinerary.destination}
+                    Your {itinerary.tripType} Journey to {itinerary.destination}
                   </CardTitle>
                   <p className="text-muted-foreground">
                     {itinerary.duration} • Estimated Budget: {itinerary.estimatedBudget?.total}
                   </p>
+                  
+                  {/* Timing Analysis */}
+                  {itinerary.timingAnalysis && (
+                    <div className={`mt-4 p-4 rounded-lg border ${
+                      itinerary.timingAnalysis.isOptimalTime 
+                        ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
+                        : 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800'
+                    }`}>
+                      <h4 className={`font-semibold mb-2 flex items-center ${
+                        itinerary.timingAnalysis.isOptimalTime 
+                          ? 'text-green-700 dark:text-green-300' 
+                          : 'text-orange-700 dark:text-orange-300'
+                      }`}>
+                        {itinerary.timingAnalysis.isOptimalTime ? (
+                          <><CheckCircle className="w-4 h-4 mr-2" />Perfect Timing!</>
+                        ) : (
+                          <><AlertTriangle className="w-4 h-4 mr-2" />Timing Considerations</>
+                        )}
+                      </h4>
+                      <div className="grid md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <strong>Weather:</strong> {itinerary.timingAnalysis.weatherConditions}
+                        </div>
+                        <div>
+                          <strong>Safety Status:</strong> {itinerary.timingAnalysis.safetyStatus}
+                        </div>
+                      </div>
+                      <p className={`text-sm mt-2 ${
+                        itinerary.timingAnalysis.isOptimalTime 
+                          ? 'text-green-700 dark:text-green-300' 
+                          : 'text-orange-700 dark:text-orange-300'
+                      }`}>
+                        <strong>Our Recommendation:</strong> {itinerary.timingAnalysis.recommendations}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Weather Alerts */}
+                  {itinerary.weatherAlerts && itinerary.weatherAlerts.length > 0 && (
+                    <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
+                      <h4 className="font-semibold mb-2 flex items-center text-red-700 dark:text-red-300">
+                        <AlertTriangle className="w-4 h-4 mr-2" />
+                        Weather Alerts
+                      </h4>
+                      <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
+                        {itinerary.weatherAlerts.map((alert: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <span className="mr-2">⚠️</span>
+                            {alert}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </CardHeader>
               </Card>
 
@@ -709,6 +833,12 @@ const TravelInterface = () => {
                         <CalendarIcon className="w-5 h-5" />
                         <span>Day {day.day}: {day.title}</span>
                       </CardTitle>
+                      {day.weatherNote && (
+                        <p className="text-sm text-muted-foreground flex items-center">
+                          <Thermometer className="w-4 h-4 mr-1" />
+                          {day.weatherNote}
+                        </p>
+                      )}
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
@@ -730,6 +860,20 @@ const TravelInterface = () => {
                                 <LocationPin className="w-4 h-4 text-muted-foreground" />
                                 <span className="text-sm">{activity.location}</span>
                                 <Badge variant="secondary" className="text-xs">{activity.estimatedCost}</Badge>
+                                {activity.weatherSuitability && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs ${
+                                      activity.weatherSuitability === 'outdoor' 
+                                        ? 'border-green-500 text-green-600' 
+                                        : activity.weatherSuitability === 'indoor'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-orange-500 text-orange-600'
+                                    }`}
+                                  >
+                                    {activity.weatherSuitability}
+                                  </Badge>
+                                )}
                               </div>
                             </div>
                           </div>

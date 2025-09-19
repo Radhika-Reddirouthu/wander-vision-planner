@@ -97,19 +97,34 @@ serve(async (req) => {
     const longWeekends = getUpcomingLongWeekends()
     const longWeekendsText = longWeekends.map(lw => `${lw.name} (${lw.dates}) - ${lw.type}`).join(', ')
 
-    const prompt = `You are a travel information expert. Based on the destination provided, return information in this exact JSON format:
+    const prompt = `You are a travel information expert analyzing the destination "${destination}". 
+
+CRITICAL REQUIREMENT: You MUST provide information SPECIFICALLY about "${destination}" only. Do not provide information about any other place.
+
+Return information in this exact JSON format:
 
 {
-  "name": "Destination Name", 
-  "description": "Brief 2-3 line description",
-  "bestTimeToVisit": "Detailed description of best months and seasons to visit. Consider these upcoming Indian long weekends for travel planning: ${longWeekendsText}",
+  "name": "${destination}",
+  "description": "Brief 2-3 line description of ${destination}",
+  "bestTimeToVisit": "Detailed analysis of best months and seasons to visit ${destination}. Include current weather patterns, monsoon timings, temperature ranges, and any recent weather events or natural disasters. Consider these upcoming Indian long weekends: ${longWeekendsText}",
+  "travelSafetyStatus": "Current travel safety status for ${destination} - mention any recent floods, landslides, weather warnings, or other safety concerns that might affect travel plans",
+  "currentSeasonAdvice": "Specific advice for visiting ${destination} during the current season with weather conditions, crowd levels, and pricing",
   "highlights": ["attraction1", "attraction2", "attraction3"],
-  "climate": "Brief climate description",
-  "travelTips": ["tip1", "tip2", "tip3"],
-  "upcomingLongWeekends": ${JSON.stringify(longWeekends.slice(0, 3))}
+  "climate": "Detailed climate description of ${destination} including seasonal variations",
+  "travelTips": ["safety tip1", "practical tip2", "local tip3"],
+  "upcomingLongWeekends": ${JSON.stringify(longWeekends.slice(0, 3))},
+  "isRecommendedNow": true/false,
+  "reasonForRecommendation": "Detailed explanation of why this is or isn't the best time to visit ${destination} based on current conditions, weather, events, and safety factors"
 }
 
-Focus on practical travel advice and make the information helpful for Indian travelers. Include seasonal considerations, weather patterns, and any special events or festivals. Mention which of the upcoming long weekends would be ideal for visiting this destination.`
+Focus specifically on ${destination}. Include:
+1. Recent weather events, floods, or natural disasters in ${destination}
+2. Current seasonal conditions and safety status
+3. Specific timing recommendations based on weather patterns
+4. Long weekend suitability for ${destination}
+5. Any travel advisories or safety concerns specific to ${destination}
+
+Make the information helpful for Indian travelers planning to visit ${destination}.`
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
