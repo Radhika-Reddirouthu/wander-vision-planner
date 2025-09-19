@@ -174,7 +174,7 @@ serve(async (req) => {
 
     await Promise.all(emailPromises)
 
-    // Also send confirmation email to organizer
+    // Also send confirmation email to organizer with poll access
     const organizerEmailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #2563eb;">Poll Created Successfully!</h1>
@@ -185,14 +185,25 @@ serve(async (req) => {
           <h3>Poll Summary:</h3>
           <ul>
             <li><strong>Destination:</strong> ${destination}</li>
+            <li><strong>Dates:</strong> ${departDate} to ${returnDate}</li>
             <li><strong>Group Members:</strong> ${memberEmails.length} people</li>
-            <li><strong>Poll URL:</strong> <a href="${formUrl}">${formUrl}</a></li>
+            <li><strong>Poll ID:</strong> ${pollId}</li>
           </ul>
+        </div>
+        
+        <p><strong>Important:</strong> As the organizer, don't forget to fill out the poll yourself!</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${formUrl}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            Complete Your Poll Response
+          </a>
         </div>
         
         <p>Group members have 7 days to respond. Once responses are collected, we'll generate a customized itinerary based on the majority preferences.</p>
         
-        <p>You can track poll progress and view results using your poll ID: <strong>${pollId}</strong></p>
+        <p>You can track poll progress and view results using your poll ID above.</p>
+        
+        <p>Happy planning!<br>The Travel Planning Team</p>
       </div>
     `
 

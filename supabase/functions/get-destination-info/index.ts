@@ -30,8 +30,8 @@ const indianHolidays2025 = [
   { date: '2025-08-16', name: 'Janmashtami' },
   { date: '2025-08-27', name: 'Ganesh Chaturthi' },
   { date: '2025-10-02', name: 'Gandhi Jayanti' },
-  { date: '2025-10-22', name: 'Dussehra' },
-  { date: '2025-11-01', name: 'Diwali' },
+  { date: '2025-10-12', name: 'Dussehra' },
+  { date: '2025-10-20', name: 'Diwali' },
   { date: '2025-11-05', name: 'Guru Nanak Jayanti' },
   { date: '2025-12-25', name: 'Christmas' }
 ]
@@ -97,18 +97,29 @@ serve(async (req) => {
     const longWeekends = getUpcomingLongWeekends()
     const longWeekendsText = longWeekends.map(lw => `${lw.name} (${lw.dates}) - ${lw.type}`).join(', ')
 
-    const prompt = `You are a travel information expert analyzing the destination "${destination}". 
+    const currentDate = new Date()
+    const currentMonth = currentDate.toLocaleDateString('en-IN', { month: 'long' })
+    const currentSeason = currentMonth === 'December' || currentMonth === 'January' || currentMonth === 'February' ? 'Winter' :
+                         currentMonth === 'March' || currentMonth === 'April' || currentMonth === 'May' ? 'Spring' :
+                         currentMonth === 'June' || currentMonth === 'July' || currentMonth === 'August' ? 'Summer' :
+                         'Autumn'
 
-CRITICAL REQUIREMENT: You MUST provide information SPECIFICALLY about "${destination}" only. Do not provide information about any other place.
+    const prompt = `You are a travel information expert analyzing the destination "${destination}" for Indian travelers. 
+
+CRITICAL REQUIREMENTS: 
+- Provide information SPECIFICALLY about "${destination}" only
+- Current date is ${currentDate.toDateString()}, current season is ${currentSeason}
+- Do NOT use placeholder text or bracketed instructions
+- Provide real, specific, actionable information
 
 Return information in this exact JSON format:
 
 {
   "name": "${destination}",
   "description": "Brief 2-3 line description of ${destination}",
-  "bestTimeToVisit": "Detailed analysis of best months and seasons to visit ${destination}. Include current weather patterns, monsoon timings, temperature ranges, and any recent weather events or natural disasters. Consider these upcoming Indian long weekends: ${longWeekendsText}",
-  "travelSafetyStatus": "Current travel safety status for ${destination} - mention any recent floods, landslides, weather warnings, or other safety concerns that might affect travel plans",
-  "currentSeasonAdvice": "Specific advice for visiting ${destination} during the current season with weather conditions, crowd levels, and pricing",
+  "bestTimeToVisit": "Detailed analysis of best months and seasons to visit ${destination}. Include current weather patterns, monsoon timings, temperature ranges. Consider these upcoming Indian long weekends: ${longWeekendsText}",
+  "travelSafetyStatus": "Current travel safety status for ${destination} based on recent conditions, accessibility, and any weather warnings",
+  "currentSeasonAdvice": "Specific advice for visiting ${destination} during ${currentSeason} (current season) with weather conditions, crowd levels, and pricing",
   "highlights": ["attraction1", "attraction2", "attraction3"],
   "climate": "Detailed climate description of ${destination} including seasonal variations",
   "travelTips": ["safety tip1", "practical tip2", "local tip3"],

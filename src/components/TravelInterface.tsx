@@ -65,10 +65,10 @@ const TravelInterface = () => {
   const [pollResults, setPollResults] = useState<any>(null);
   const [organizerEmail, setOrganizerEmail] = useState("");
 
-  // Fetch destination info when destination changes
+  // Fetch destination info when destination and dates are selected
   useEffect(() => {
     const fetchDestinationInfo = async () => {
-      if (destination.length > 2) {
+      if (destination.trim().length > 2 && departDate && returnDate) {
         setIsLoadingDestination(true);
         try {
           const { data, error } = await supabase.functions.invoke('get-destination-info', {
@@ -81,12 +81,14 @@ const TravelInterface = () => {
         } finally {
           setIsLoadingDestination(false);
         }
+      } else {
+        setDestinationInfo(null); // Clear info if dates not selected
       }
     };
 
     const timeoutId = setTimeout(fetchDestinationInfo, 1000);
     return () => clearTimeout(timeoutId);
-  }, [destination]);
+  }, [destination, departDate, returnDate]);
 
   const addEmailField = () => {
     setEmails([...emails, ""]);
@@ -398,6 +400,13 @@ const TravelInterface = () => {
                     />
                     
                     {/* Real-time destination analysis */}
+                    {destination.length > 2 && !departDate && !returnDate && (
+                      <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 flex items-center space-x-2">
+                        <Info className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm text-blue-700 dark:text-blue-300">Select travel dates to get detailed destination analysis and timing recommendations</span>
+                      </div>
+                    )}
+                    
                     {isLoadingDestination && (
                       <div className="mt-3 p-4 bg-accent/20 rounded-lg border flex items-center space-x-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
