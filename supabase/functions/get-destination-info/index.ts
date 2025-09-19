@@ -36,6 +36,45 @@ const indianHolidays2025 = [
   { date: '2025-12-25', name: 'Christmas' }
 ]
 
+function getHolidaysForTravelDates(departDate, returnDate) {
+  const depart = new Date(departDate)
+  const returnD = new Date(returnDate)
+  const longWeekends = []
+  const allHolidays = [...indianHolidays2024, ...indianHolidays2025]
+  
+  for (const holiday of allHolidays) {
+    const holidayDate = new Date(holiday.date)
+    
+    // Include holidays that fall within or close to travel dates (within 30 days before or during trip)
+    const thirtyDaysBefore = new Date(depart.getTime() - 30*24*60*60*1000)
+    if (holidayDate >= thirtyDaysBefore && holidayDate <= returnD) {
+      const dayOfWeek = holidayDate.getDay()
+      
+      if (dayOfWeek === 1) { // Monday holiday = 3-day weekend
+        longWeekends.push({
+          ...holiday,
+          type: '3-day weekend',
+          dates: `${formatDate(new Date(holidayDate.getTime() - 2*24*60*60*1000))} - ${formatDate(holidayDate)}`
+        })
+      } else if (dayOfWeek === 5) { // Friday holiday = 3-day weekend
+        longWeekends.push({
+          ...holiday,
+          type: '3-day weekend', 
+          dates: `${formatDate(holidayDate)} - ${formatDate(new Date(holidayDate.getTime() + 2*24*60*60*1000))}`
+        })
+      } else {
+        longWeekends.push({
+          ...holiday,
+          type: 'holiday',
+          dates: formatDate(holidayDate)
+        })
+      }
+    }
+  }
+  
+  return longWeekends.slice(0, 6)
+}
+
 function getUpcomingLongWeekends() {
   const today = new Date()
   const longWeekends = []
@@ -87,14 +126,20 @@ serve(async (req) => {
   }
 
   try {
-    const { destination } = await req.json()
+    const { destination, departDate, returnDate } = await req.json()
     
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
     if (!GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY not found')
     }
 
-    const longWeekends = getUpcomingLongWeekends()
+    console.log('Getting destination info for:', { destination, departDate, returnDate })
+
+    // Get holidays relevant to travel dates if provided
+    const longWeekends = departDate && returnDate ? 
+      getHolidaysForTravelDates(departDate, returnDate) : 
+      getUpcomingLongWeekends()
+    
     const longWeekendsText = longWeekends.map(lw => `${lw.name} (${lw.dates}) - ${lw.type}`).join(', ')
 
     const currentDate = new Date()

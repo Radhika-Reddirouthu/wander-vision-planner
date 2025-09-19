@@ -25,6 +25,7 @@ serve(async (req) => {
       destination, 
       tripType, 
       groupType, 
+      groupSize,
       departDate, 
       returnDate, 
       budget, 
@@ -33,7 +34,7 @@ serve(async (req) => {
       memberEmails
     } = await req.json()
 
-    console.log('Creating group poll for:', { destination, organizerEmail, memberEmails })
+    console.log('Creating group poll for:', { destination, organizerEmail, memberEmails, groupSize })
 
     // Create the poll record
     const { data: pollData, error: pollError } = await supabase
@@ -143,8 +144,9 @@ serve(async (req) => {
             <h3>Trip Details:</h3>
             <ul>
               <li><strong>Destination:</strong> ${destination}</li>
-              <li><strong>Dates:</strong> ${departDate} to ${returnDate}</li>
+            <li><strong>Dates:</strong> ${departDate} to ${returnDate}</li>
               <li><strong>Trip Type:</strong> ${tripType}</li>
+              <li><strong>Group Size:</strong> ${groupSize ? `${groupSize} people` : 'Not specified'}</li>
               <li><strong>Budget:</strong> ${budget}</li>
             </ul>
           </div>
@@ -186,6 +188,7 @@ serve(async (req) => {
           <ul>
             <li><strong>Destination:</strong> ${destination}</li>
             <li><strong>Dates:</strong> ${departDate} to ${returnDate}</li>
+            <li><strong>Group Size:</strong> ${groupSize ? `${groupSize} people` : 'Not specified'}</li>
             <li><strong>Group Members:</strong> ${memberEmails.length} people</li>
             <li><strong>Poll ID:</strong> ${pollId}</li>
           </ul>

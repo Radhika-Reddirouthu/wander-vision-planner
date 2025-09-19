@@ -16,6 +16,7 @@ serve(async (req) => {
       destination, 
       tripType, 
       groupType, 
+      groupSize,
       departDate, 
       returnDate, 
       budget, 
@@ -23,8 +24,11 @@ serve(async (req) => {
       pollResults
     } = await req.json()
     
+    console.log('Creating itinerary for:', { destination, tripType, groupType, groupSize, departDate, returnDate })
+    
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
     if (!GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY not found')
       throw new Error('GEMINI_API_KEY not found')
     }
 
@@ -44,7 +48,7 @@ IMPORTANT - Group Preferences from Poll Results:
 Please prioritize these group preferences in the itinerary. When there are choices, favor options that match the majority preferences above.`
     }
 
-    const prompt = `Create a detailed travel itinerary for a ${tripType} ${groupType} trip to ${destination} from ${departDate} to ${returnDate} with a budget of ${budget} INR. ${needsFlights ? 'Include flight recommendations.' : 'No flights needed.'}${pollContext}
+    const prompt = `Create a detailed travel itinerary for a ${tripType} ${groupType} trip to ${destination} from ${departDate} to ${returnDate} with a budget of ${budget} INR${groupSize ? ` for ${groupSize} people` : ''}. ${needsFlights ? 'Include flight recommendations.' : 'No flights needed.'}${pollContext}
 
     CRITICAL REQUIREMENTS:
     1. Analyze the travel dates (${departDate} to ${returnDate}) for ${destination}
@@ -183,10 +187,14 @@ Please prioritize these group preferences in the itinerary. When there are choic
       const jsonMatch = text.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         parsedData = JSON.parse(jsonMatch[0])
+        console.log('Successfully parsed itinerary data')
       } else {
+        console.error('No JSON found in Gemini response')
         throw new Error('No JSON found in response')
       }
     } catch (parseError) {
+      console.error('JSON parsing error:', parseError)
+      console.error('Raw Gemini response:', text)
       parsedData = {
         error: "Could not parse itinerary information",
         rawResponse: text
@@ -203,15 +211,18 @@ Please prioritize these group preferences in the itinerary. When there are choic
       },
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error creating itinerary:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Failed to create itinerary. Please check the console logs for more details.'
+      }),
       { 
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-        status: 400,
+        status: 500,
       },
     )
   }

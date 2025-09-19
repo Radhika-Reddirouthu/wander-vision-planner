@@ -46,6 +46,7 @@ import PollingView from "./PollingView";
 const TravelInterface = () => {
   const [tripType, setTripType] = useState("");
   const [groupType, setGroupType] = useState("");
+  const [groupSize, setGroupSize] = useState("");
   const [currentView, setCurrentView] = useState("main");
   const [emails, setEmails] = useState([""]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -72,7 +73,11 @@ const TravelInterface = () => {
         setIsLoadingDestination(true);
         try {
           const { data, error } = await supabase.functions.invoke('get-destination-info', {
-            body: { destination }
+            body: { 
+              destination,
+              departDate: format(departDate, 'yyyy-MM-dd'),
+              returnDate: format(returnDate, 'yyyy-MM-dd')
+            }
           });
           if (error) throw error;
           setDestinationInfo(data);
@@ -132,6 +137,11 @@ const TravelInterface = () => {
       return;
     }
 
+    if (groupType === "group" && !groupSize) {
+      alert('Please specify the number of people in your group');
+      return;
+    }
+
     setIsLoadingItinerary(true);
     try {
       // If group polling is enabled, create a poll first
@@ -148,6 +158,7 @@ const TravelInterface = () => {
             destination,
             tripType,
             groupType,
+            groupSize,
             departDate: format(departDate, 'yyyy-MM-dd'),
             returnDate: format(returnDate, 'yyyy-MM-dd'),
             budget,
@@ -170,6 +181,7 @@ const TravelInterface = () => {
           destination,
           tripType,
           groupType,
+          groupSize: groupType === "group" ? groupSize : "1",
           departDate: format(departDate, 'yyyy-MM-dd'),
           returnDate: format(returnDate, 'yyyy-MM-dd'),
           budget,
@@ -385,6 +397,25 @@ const TravelInterface = () => {
                       </div>
                     </RadioGroup>
                   </div>
+
+                  {/* Group Size Input - only show when group trip is selected */}
+                  {groupType === "group" && (
+                    <div>
+                      <Label htmlFor="groupSize" className="text-lg font-semibold mb-4 block">
+                        How many people in your group?
+                      </Label>
+                      <Input 
+                        id="groupSize" 
+                        type="number"
+                        min="2"
+                        max="20"
+                        placeholder="Enter number of people..." 
+                        value={groupSize}
+                        onChange={(e) => setGroupSize(e.target.value)}
+                        className="text-lg p-4"
+                      />
+                    </div>
+                  )}
 
                   {/* Destination Input */}
                   <div>
