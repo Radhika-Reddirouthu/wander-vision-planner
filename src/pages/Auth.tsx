@@ -14,6 +14,7 @@ const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { user, signInWithGoogle } = useAuth();
   const { toast } = useToast();
@@ -61,6 +62,28 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
+        // Validate password confirmation
+        if (password !== confirmPassword) {
+          toast({
+            title: "Password mismatch",
+            description: "Passwords do not match. Please try again.",
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Validate password strength
+        if (password.length < 6) {
+          toast({
+            title: "Weak password",
+            description: "Password must be at least 6 characters long.",
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+
         const redirectUrl = `${window.location.origin}/`;
         const { error } = await supabase.auth.signUp({
           email,
@@ -78,14 +101,26 @@ const Auth = () => {
               variant: "destructive"
             });
             setIsSignUp(false);
+          } else if (error.message.includes('User already registered')) {
+            toast({
+              title: "Account exists",
+              description: "This email is already registered. Please sign in instead.",
+              variant: "destructive"
+            });
+            setIsSignUp(false);
           } else {
             throw error;
           }
         } else {
           toast({
-            title: "Check your email",
-            description: "We've sent you a confirmation link to complete your signup."
+            title: "Account created successfully!",
+            description: "Please check your email and click the confirmation link to activate your account."
           });
+          // Clear form
+          setEmail('');
+          setPassword('');
+          setConfirmPassword('');
+          setIsSignUp(false);
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -100,9 +135,20 @@ const Auth = () => {
               description: "Please check your email and password and try again.",
               variant: "destructive"
             });
+          } else if (error.message.includes('Email not confirmed')) {
+            toast({
+              title: "Email not confirmed",
+              description: "Please check your email and click the confirmation link before signing in.",
+              variant: "destructive"
+            });
           } else {
             throw error;
           }
+        } else {
+          toast({
+            title: "Welcome back!",
+            description: "You have successfully signed in."
+          });
         }
       }
     } catch (error: any) {
@@ -209,6 +255,22 @@ const Auth = () => {
                   className="h-11"
                 />
               </div>
+
+              {isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="h-11"
+                  />
+                </div>
+              )}
 
               <Button
                 type="submit"
