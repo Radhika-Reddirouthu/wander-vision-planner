@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import heroImage from "@/assets/hero-travel.jpg";
 import ChatBot from "./ChatBot";
+import PollingView from "./PollingView";
 
 const TravelInterface = () => {
   const [tripType, setTripType] = useState("");
@@ -55,6 +56,10 @@ const TravelInterface = () => {
   const [isLoadingItinerary, setIsLoadingItinerary] = useState(false);
   const [isLoadingImageAnalysis, setIsLoadingImageAnalysis] = useState(false);
   const [imageAnalysis, setImageAnalysis] = useState<any>(null);
+  const [enableGroupPolling, setEnableGroupPolling] = useState(false);
+  const [pollId, setPollId] = useState<string | null>(null);
+  const [pollResults, setPollResults] = useState<any>(null);
+  const [organizerEmail, setOrganizerEmail] = useState("");
 
   // Fetch destination info when destination changes
   useEffect(() => {
@@ -123,6 +128,37 @@ const TravelInterface = () => {
 
     setIsLoadingItinerary(true);
     try {
+      // If group polling is enabled, create a poll first
+      if (groupType === "group" && enableGroupPolling) {
+        const validEmails = emails.filter(email => email.trim() !== "");
+        if (validEmails.length === 0 || !organizerEmail.trim()) {
+          alert("Please provide organizer email and at least one group member email for polling");
+          setIsLoadingItinerary(false);
+          return;
+        }
+
+        const { data: pollData, error: pollError } = await supabase.functions.invoke('create-group-poll', {
+          body: {
+            destination,
+            tripType,
+            groupType,
+            departDate: format(departDate, 'yyyy-MM-dd'),
+            returnDate: format(returnDate, 'yyyy-MM-dd'),
+            budget,
+            needsFlights,
+            organizerEmail: organizerEmail.trim(),
+            memberEmails: validEmails
+          }
+        });
+
+        if (pollError) throw pollError;
+        
+        setPollId(pollData.pollId);
+        setCurrentView("polling");
+        return;
+      }
+
+      // Regular itinerary creation
       const { data, error } = await supabase.functions.invoke('create-itinerary', {
         body: {
           destination,
@@ -131,7 +167,8 @@ const TravelInterface = () => {
           departDate: format(departDate, 'yyyy-MM-dd'),
           returnDate: format(returnDate, 'yyyy-MM-dd'),
           budget,
-          needsFlights
+          needsFlights,
+          pollResults: pollResults // Include poll results if available
         }
       });
       
@@ -144,6 +181,7 @@ const TravelInterface = () => {
     } finally {
       setIsLoadingItinerary(false);
     }
+  };
   };
 
   const toggleActivitySelection = (dayIndex: number, activityIndex: number) => {
@@ -539,29 +577,75 @@ const TravelInterface = () => {
                     )}
                   </div>
 
-                  {/* Group Email Collection */}
+                  {/* Group Trip Features */}
                   {groupType === "group" && (
-                    <div>
-                      <Label className="text-lg font-semibold mb-4 block">Group Member Email Addresses</Label>
-                      <div className="space-y-3">
-                        {emails.map((email, index) => (
-                          <div key={index} className="flex items-center space-x-2">
-                            <Mail className="w-5 h-5 text-muted-foreground" />
-                            <Input
-                              placeholder={`Email ${index + 1}`}
-                              value={email}
-                              onChange={(e) => updateEmail(index, e.target.value)}
-                              className="flex-1"
-                            />
+                    <div className="space-y-6">
+                      {/* Group Polling Option */}
+                      <div>
+                        <div className="flex items-center space-x-2 mb-4">
+                          <Checkbox 
+                            id="groupPolling" 
+                            checked={enableGroupPolling}
+                            onCheckedChange={(checked) => setEnableGroupPolling(checked === true)}
+                          />
+                          <Label htmlFor="groupPolling" className="text-lg font-semibold flex items-center space-x-2">
+                            <Users className="w-5 h-5" />
+                            <span>Enable Group Polling</span>
+                          </Label>
+                        </div>
+                        {enableGroupPolling && (
+                          <div className="p-4 bg-accent/20 rounded-lg border">
+                            <p className="text-sm text-muted-foreground mb-3">
+                              🗳️ Create a group poll to let everyone vote on preferences for accommodation, activities, food, and transport. The itinerary will be customized based on majority preferences.
+                            </p>
+                            <div className="space-y-3">
+                              <div>
+                                <Label htmlFor="organizerEmail" className="text-sm font-medium mb-1 block">
+                                  Organizer Email (Your Email)
+                                </Label>
+                                <div className="flex items-center space-x-2">
+                                  <Mail className="w-5 h-5 text-muted-foreground" />
+                                  <Input
+                                    id="organizerEmail"
+                                    placeholder="your.email@example.com"
+                                    value={organizerEmail}
+                                    onChange={(e) => setOrganizerEmail(e.target.value)}
+                                    className="flex-1"
+                                    type="email"
+                                  />
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        ))}
-                        <Button 
-                          onClick={addEmailField}
-                          variant="outline"
-                          className="w-full"
-                        >
-                          Add Another Email
-                        </Button>
+                        )}
+                      </div>
+
+                      {/* Group Member Emails */}
+                      <div>
+                        <Label className="text-lg font-semibold mb-4 block">
+                          {enableGroupPolling ? "Group Member Email Addresses (for polling)" : "Group Member Email Addresses"}
+                        </Label>
+                        <div className="space-y-3">
+                          {emails.map((email, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <Mail className="w-5 h-5 text-muted-foreground" />
+                              <Input
+                                placeholder={`Email ${index + 1}`}
+                                value={email}
+                                onChange={(e) => updateEmail(index, e.target.value)}
+                                className="flex-1"
+                                type="email"
+                              />
+                            </div>
+                          ))}
+                          <Button 
+                            onClick={addEmailField}
+                            variant="outline"
+                            className="w-full"
+                          >
+                            Add Another Email
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1118,6 +1202,50 @@ const TravelInterface = () => {
         </div>
         <ChatBot />
       </div>
+    );
+  }
+
+  const handleCreateItineraryWithPollResults = async (pollResults: any) => {
+    if (!destination || !departDate || !returnDate || !budget) return;
+    
+    setIsLoadingItinerary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-itinerary', {
+        body: {
+          destination,
+          tripType,
+          groupType,
+          departDate: format(departDate, 'yyyy-MM-dd'),
+          returnDate: format(returnDate, 'yyyy-MM-dd'),
+          budget,
+          needsFlights,
+          pollResults: pollResults // Include poll results for customization
+        }
+      });
+      
+      if (error) throw error;
+      setItinerary(data);
+    } catch (error) {
+      console.error('Error creating itinerary with poll results:', error);
+      alert('Error creating itinerary. Please try again.');
+    } finally {
+      setIsLoadingItinerary(false);
+    }
+  };
+
+  // Polling view
+  if (currentView === "polling" && pollId) {
+    return (
+      <PollingView
+        pollId={pollId}
+        onBackToPlanning={() => setCurrentView("plan")}
+        onProceedToItinerary={(results) => {
+          setPollResults(results);
+          setCurrentView("itinerary");
+          // Generate itinerary with poll results
+          handleCreateItineraryWithPollResults(results);
+        }}
+      />
     );
   }
 

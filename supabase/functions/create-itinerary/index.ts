@@ -19,7 +19,8 @@ serve(async (req) => {
       departDate, 
       returnDate, 
       budget, 
-      needsFlights 
+      needsFlights,
+      pollResults
     } = await req.json()
     
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
@@ -27,7 +28,23 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY not found')
     }
 
-    const prompt = `Create a detailed travel itinerary for a ${tripType} ${groupType} trip to ${destination} from ${departDate} to ${returnDate} with a budget of ${budget} INR. ${needsFlights ? 'Include flight recommendations.' : 'No flights needed.'}
+    // Build the prompt with poll results if available
+    let pollContext = ""
+    if (pollResults && pollResults.preferences) {
+      const prefs = pollResults.preferences
+      pollContext = `
+      
+IMPORTANT - Group Preferences from Poll Results:
+- Accommodation preference: ${prefs.accommodation}
+- Activity preferences: ${Array.isArray(prefs.activities) ? prefs.activities.join(", ") : prefs.activities}
+- Budget preference: ${prefs.budget}
+- Food preferences: ${Array.isArray(prefs.food) ? prefs.food.join(", ") : prefs.food}
+- Transportation preference: ${prefs.transport}
+
+Please prioritize these group preferences in the itinerary. When there are choices, favor options that match the majority preferences above.`
+    }
+
+    const prompt = `Create a detailed travel itinerary for a ${tripType} ${groupType} trip to ${destination} from ${departDate} to ${returnDate} with a budget of ${budget} INR. ${needsFlights ? 'Include flight recommendations.' : 'No flights needed.'}${pollContext}
 
     Provide the response in this JSON format:
     {
