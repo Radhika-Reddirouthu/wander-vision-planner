@@ -6,14 +6,16 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
 const Index = () => {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, needsOnboarding, signOut } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
+    } else if (!loading && user && needsOnboarding) {
+      navigate('/onboarding');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, needsOnboarding, navigate]);
 
   const handleSignOut = async () => {
     await signOut();

@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  needsOnboarding: boolean;
   signInWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
 }
@@ -16,6 +17,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -24,6 +26,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Check onboarding status for authenticated users
+        if (session?.user) {
+          setTimeout(() => {
+            checkOnboardingStatus(session.user.id);
+          }, 0);
+        } else {
+          setNeedsOnboarding(false);
+        }
       }
     );
 
@@ -32,10 +43,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      if (session?.user) {
+        checkOnboardingStatus(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const checkOnboardingStatus = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('onboarding_completed')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error checking onboarding status:', error);
+        return;
+      }
+
+      setNeedsOnboarding(!data?.onboarding_completed);
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+    }
+  };
 
   const signInWithGoogle = async () => {
     const redirectUrl = `${window.location.origin}/`;
@@ -59,6 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user,
       session,
       loading,
+      needsOnboarding,
       signInWithGoogle,
       signOut
     }}>

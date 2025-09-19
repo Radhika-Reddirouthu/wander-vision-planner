@@ -218,6 +218,75 @@ export type Database = {
           },
         ]
       }
+      user_profiles: {
+        Row: {
+          accommodation_style: string | null
+          activity_level: string | null
+          adventure_seeking: string | null
+          budget_flexibility: string | null
+          created_at: string
+          cultural_interest: string | null
+          display_name: string | null
+          email: string
+          environment_preference: string | null
+          food_adventure_level: string | null
+          group_dynamics: string | null
+          id: string
+          nightlife_preference: string | null
+          onboarding_completed: boolean
+          pace_preference: string | null
+          planning_style: string | null
+          shopping_interest: string | null
+          social_preference: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accommodation_style?: string | null
+          activity_level?: string | null
+          adventure_seeking?: string | null
+          budget_flexibility?: string | null
+          created_at?: string
+          cultural_interest?: string | null
+          display_name?: string | null
+          email: string
+          environment_preference?: string | null
+          food_adventure_level?: string | null
+          group_dynamics?: string | null
+          id?: string
+          nightlife_preference?: string | null
+          onboarding_completed?: boolean
+          pace_preference?: string | null
+          planning_style?: string | null
+          shopping_interest?: string | null
+          social_preference?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accommodation_style?: string | null
+          activity_level?: string | null
+          adventure_seeking?: string | null
+          budget_flexibility?: string | null
+          created_at?: string
+          cultural_interest?: string | null
+          display_name?: string | null
+          email?: string
+          environment_preference?: string | null
+          food_adventure_level?: string | null
+          group_dynamics?: string | null
+          id?: string
+          nightlife_preference?: string | null
+          onboarding_completed?: boolean
+          pace_preference?: string | null
+          planning_style?: string | null
+          shopping_interest?: string | null
+          social_preference?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
