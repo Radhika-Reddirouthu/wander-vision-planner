@@ -14,7 +14,210 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      group_polls: {
+        Row: {
+          budget: string
+          created_at: string
+          depart_date: string
+          destination: string
+          expires_at: string
+          google_form_id: string | null
+          google_form_url: string | null
+          group_type: string
+          id: string
+          organizer_email: string
+          poll_status: string | null
+          return_date: string
+          trip_type: string
+          updated_at: string
+        }
+        Insert: {
+          budget: string
+          created_at?: string
+          depart_date: string
+          destination: string
+          expires_at?: string
+          google_form_id?: string | null
+          google_form_url?: string | null
+          group_type: string
+          id?: string
+          organizer_email: string
+          poll_status?: string | null
+          return_date: string
+          trip_type: string
+          updated_at?: string
+        }
+        Update: {
+          budget?: string
+          created_at?: string
+          depart_date?: string
+          destination?: string
+          expires_at?: string
+          google_form_id?: string | null
+          google_form_url?: string | null
+          group_type?: string
+          id?: string
+          organizer_email?: string
+          poll_status?: string | null
+          return_date?: string
+          trip_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      poll_members: {
+        Row: {
+          email: string
+          has_responded: boolean | null
+          id: string
+          invited_at: string
+          poll_id: string
+          responded_at: string | null
+        }
+        Insert: {
+          email: string
+          has_responded?: boolean | null
+          id?: string
+          invited_at?: string
+          poll_id: string
+          responded_at?: string | null
+        }
+        Update: {
+          email?: string
+          has_responded?: boolean | null
+          id?: string
+          invited_at?: string
+          poll_id?: string
+          responded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_members_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "group_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_questions: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          options: Json | null
+          poll_id: string
+          question_text: string
+          question_type: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          options?: Json | null
+          poll_id: string
+          question_text: string
+          question_type: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          options?: Json | null
+          poll_id?: string
+          question_text?: string
+          question_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_questions_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "group_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_responses: {
+        Row: {
+          id: string
+          poll_id: string
+          question_id: string
+          responder_email: string
+          response_value: string
+          submitted_at: string
+        }
+        Insert: {
+          id?: string
+          poll_id: string
+          question_id: string
+          responder_email: string
+          response_value: string
+          submitted_at?: string
+        }
+        Update: {
+          id?: string
+          poll_id?: string
+          question_id?: string
+          responder_email?: string
+          response_value?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_responses_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "group_polls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "poll_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_results: {
+        Row: {
+          calculated_at: string
+          category: string
+          id: string
+          majority_choice: string | null
+          poll_id: string
+          result_summary: Json
+          vote_distribution: Json | null
+        }
+        Insert: {
+          calculated_at?: string
+          category: string
+          id?: string
+          majority_choice?: string | null
+          poll_id: string
+          result_summary: Json
+          vote_distribution?: Json | null
+        }
+        Update: {
+          calculated_at?: string
+          category?: string
+          id?: string
+          majority_choice?: string | null
+          poll_id?: string
+          result_summary?: Json
+          vote_distribution?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_results_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "group_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
