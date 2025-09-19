@@ -98,13 +98,6 @@ export type Database = {
             referencedRelation: "group_polls"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "poll_members_poll_id_fkey"
-            columns: ["poll_id"]
-            isOneToOne: false
-            referencedRelation: "public_poll_info"
-            referencedColumns: ["id"]
-          },
         ]
       }
       poll_questions: {
@@ -143,13 +136,6 @@ export type Database = {
             referencedRelation: "group_polls"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "poll_questions_poll_id_fkey"
-            columns: ["poll_id"]
-            isOneToOne: false
-            referencedRelation: "public_poll_info"
-            referencedColumns: ["id"]
-          },
         ]
       }
       poll_responses: {
@@ -183,13 +169,6 @@ export type Database = {
             columns: ["poll_id"]
             isOneToOne: false
             referencedRelation: "group_polls"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "poll_responses_poll_id_fkey"
-            columns: ["poll_id"]
-            isOneToOne: false
-            referencedRelation: "public_poll_info"
             referencedColumns: ["id"]
           },
           {
@@ -237,56 +216,14 @@ export type Database = {
             referencedRelation: "group_polls"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "poll_results_poll_id_fkey"
-            columns: ["poll_id"]
-            isOneToOne: false
-            referencedRelation: "public_poll_info"
-            referencedColumns: ["id"]
-          },
         ]
       }
     }
     Views: {
-      public_poll_info: {
-        Row: {
-          created_at: string | null
-          depart_date: string | null
-          destination: string | null
-          expires_at: string | null
-          group_type: string | null
-          id: string | null
-          poll_status: string | null
-          return_date: string | null
-          trip_type: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          depart_date?: string | null
-          destination?: string | null
-          expires_at?: string | null
-          group_type?: string | null
-          id?: string | null
-          poll_status?: string | null
-          return_date?: string | null
-          trip_type?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          depart_date?: string | null
-          destination?: string | null
-          expires_at?: string | null
-          group_type?: string | null
-          id?: string | null
-          poll_status?: string | null
-          return_date?: string | null
-          trip_type?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      user_can_access_poll: {
+      is_poll_member_or_organizer: {
         Args: { poll_uuid: string }
         Returns: boolean
       }
