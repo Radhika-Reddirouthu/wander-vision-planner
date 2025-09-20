@@ -846,7 +846,7 @@ const TravelInterface = () => {
                                 <Mail className="w-5 h-5 text-primary" />
                                 <div className="flex-1">
                                   <p className="text-sm font-medium text-primary">Poll organizer: {user?.email}</p>
-                                  <p className="text-xs text-muted-foreground">Emails will be sent from your account</p>
+                                  <p className="text-xs text-muted-foreground">Poll will be shared via shareable links with optional email invites</p>
                                 </div>
                               </div>
                             </div>
@@ -1442,6 +1442,37 @@ const TravelInterface = () => {
   // Surprise Me View
   if (currentView === "surprise") {
     return <SurpriseView onBackToMain={() => setCurrentView("main")} />;
+  }
+
+  // Poll Success View
+  if (currentView === "poll-success") {
+    if (!pollData) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading poll details...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <PollSuccess
+        pollId={pollData.pollId}
+        pollUrl={pollData.pollUrl}
+        destination={destination}
+        organizerEmail={user?.email || ""}
+        memberEmails={emails.filter(email => email.trim() !== "")}
+        memberCount={emails.filter(email => email.trim() !== "").length}
+        onBackToPlanning={() => {
+          setCurrentView("plan");
+        }}
+        onViewPollResults={() => {
+          setCurrentView("polling");
+        }}
+      />
+    );
   }
 
   // Handle creating itinerary with poll results
