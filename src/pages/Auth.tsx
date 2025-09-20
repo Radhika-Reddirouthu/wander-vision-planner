@@ -16,6 +16,8 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
+  const [resendEmail, setResendEmail] = useState('');
   const { user, signInWithGoogle } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -136,10 +138,13 @@ const Auth = () => {
               variant: "destructive"
             });
           } else if (error.message.includes('Email not confirmed')) {
+            setShowResendConfirmation(true);
+            setResendEmail(email);
             toast({
               title: "Email not confirmed",
-              description: "Please check your email and click the confirmation link before signing in.",
-              variant: "destructive"
+              description: "Please check your email and click the confirmation link, or use the resend option below.",
+              variant: "destructive",
+              duration: 8000,
             });
           } else {
             throw error;
@@ -178,6 +183,39 @@ const Auth = () => {
         description: "Something went wrong. Please try again.",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!resendEmail) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: resendEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Confirmation email sent!",
+        description: "Please check your email for the new confirmation link.",
+      });
+      setShowResendConfirmation(false);
+    } catch (error: any) {
+      toast({
+        title: "Resend Error",
+        description: error.message || "Failed to resend confirmation email. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -281,10 +319,33 @@ const Auth = () => {
               </Button>
             </form>
 
+            {showResendConfirmation && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-800 mb-3">
+                  Need to resend the confirmation email for <strong>{resendEmail}</strong>?
+                </p>
+                <Button
+                  onClick={handleResendConfirmation}
+                  variant="outline"
+                  size="sm"
+                  disabled={loading}
+                  className="w-full"
+                >
+                  {loading ? 'Sending...' : 'Resend Confirmation Email'}
+                </Button>
+              </div>
+            )}
+
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setShowResendConfirmation(false);
+                  setEmail('');
+                  setPassword('');
+                  setConfirmPassword('');
+                }}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 {isSignUp 
