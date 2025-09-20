@@ -124,42 +124,30 @@ serve(async (req) => {
       throw membersError
     }
 
-    // Create Google Form (simplified version - for now we'll use a simple form URL)
-    const formUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/poll-form?pollId=${pollId}`
+    // Create shareable poll URL (accessible without authentication)
+    const pollUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/poll-form?pollId=${pollId}`
     
     // Update poll with form URL
     await supabase
       .from('group_polls')
-      .update({ google_form_url: formUrl })
+      .update({ google_form_url: pollUrl })
       .eq('id', pollId)
 
-    // Send poll invites via email
-    const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-poll-invites', {
-      body: {
-        pollId,
-        destination,
-        organizerEmail,
-        memberEmails: memberEmails.filter(email => email.trim() !== organizerEmail.trim()), // Don't email organizer
-        formUrl
-      }
-    });
-
-    if (emailError) {
-      console.error('Error sending poll invites:', emailError);
-      // Continue anyway, poll is created
-    } else {
-      console.log('Poll invites sent successfully:', emailResult);
-    }
-
     console.log(`Poll created successfully. Members (including organizer): ${allMembers.join(', ')}`)
-    console.log(`Poll form URL: ${formUrl}`)
-    console.log('Note: Organizer has been added as a poll member and can participate in the poll.')
+    console.log(`Shareable poll URL: ${pollUrl}`)
+    console.log(`Poll ID: ${pollId}`)
 
     return new Response(JSON.stringify({ 
       pollId,
-      formUrl,
-      message: 'Poll created and invites sent successfully',
-      emailResult
+      pollUrl,
+      formUrl: pollUrl, // for backward compatibility
+      memberCount: allMembers.length,
+      message: 'Poll created successfully. Share the poll URL with group members.',
+      shareInstructions: {
+        pollUrl,
+        destination,
+        memberEmails: memberEmails.filter(email => email.trim() !== organizerEmail.trim())
+      }
     }), {
       headers: { 
         ...corsHeaders,

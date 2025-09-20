@@ -44,6 +44,7 @@ import ChatBot from "./ChatBot";
 import PollingView from "./PollingView";
 import SurpriseView from "./SurpriseView";
 import PlaceIdentifier from "./PlaceIdentifier";
+import PollSuccess from "./PollSuccess";
 import { useAuth } from "@/hooks/useAuth";
 
 const TravelInterface = () => {
@@ -51,7 +52,7 @@ const TravelInterface = () => {
   const [tripType, setTripType] = useState("");
   const [groupType, setGroupType] = useState("");
   const [groupSize, setGroupSize] = useState("");
-  const [currentView, setCurrentView] = useState("main");
+  const [currentView, setCurrentView] = useState<'main' | 'plan' | 'chat' | 'itinerary' | 'polling' | 'poll-success' | 'surprise' | 'identify'>('main');
   const [emails, setEmails] = useState([""]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [departDate, setDepartDate] = useState<Date>();
@@ -68,6 +69,7 @@ const TravelInterface = () => {
   const [enableGroupPolling, setEnableGroupPolling] = useState(false);
   const [pollId, setPollId] = useState<string | null>(null);
   const [pollResults, setPollResults] = useState<any>(null);
+  const [pollData, setPollData] = useState<any>(null); // Store poll creation response
   const [isLoadingUserData, setIsLoadingUserData] = useState(true);
 
   // Load user's saved trip data and check for active polls on component mount
@@ -105,9 +107,10 @@ const TravelInterface = () => {
           if (savedData.departDate) setDepartDate(new Date(savedData.departDate));
           if (savedData.returnDate) setReturnDate(new Date(savedData.returnDate));
           
-          // Set current view based on last step
-          if (profile.last_planning_step) {
-            setCurrentView(profile.last_planning_step);
+          // Set current view based on last step (ensure it matches the union type)
+          if (profile.last_planning_step && 
+              ['main', 'plan', 'chat', 'itinerary', 'polling', 'poll-success', 'surprise', 'identify'].includes(profile.last_planning_step)) {
+            setCurrentView(profile.last_planning_step as 'main' | 'plan' | 'chat' | 'itinerary' | 'polling' | 'poll-success' | 'surprise' | 'identify');
           } else if (savedData.tripType) {
             setCurrentView("plan");
           }
@@ -327,6 +330,9 @@ const TravelInterface = () => {
 
         if (pollError) throw pollError;
         
+        // Store poll data for the success screen
+        setPollData(pollData);
+        
         // Save active poll ID to user profile
         await supabase
           .from('user_profiles')
@@ -337,7 +343,7 @@ const TravelInterface = () => {
           .eq('user_id', user.id);
         
         setPollId(pollData.pollId);
-        setCurrentView("polling");
+        setCurrentView("poll-success");
         return;
       }
 
@@ -1544,27 +1550,6 @@ const TravelInterface = () => {
       setIsLoadingItinerary(false);
     }
   };
-
-  // Surprise Me view
-  if (currentView === "surprise") {
-    return <SurpriseView onBackToMain={() => setCurrentView("main")} />;
-  }
-
-  // AI Place Identifier view
-  if (currentView === "identify") {
-    return <PlaceIdentifier onBack={() => setCurrentView("main")} />;
-  }
-
-  // Polling view
-  if (currentView === "polling" && pollId) {
-    return (
-      <PollingView
-        pollId={pollId}
-        onBackToPlanning={() => setCurrentView("plan")}
-        onProceedToItinerary={onProceedToItinerary}
-      />
-    );
-  }
 
   return null;
 };
