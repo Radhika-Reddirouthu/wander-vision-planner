@@ -42,6 +42,7 @@ import {
 import heroImage from "@/assets/hero-travel.jpg";
 import ChatBot from "./ChatBot";
 import PollingView from "./PollingView";
+import SurpriseView from "./SurpriseView";
 import { useAuth } from "@/hooks/useAuth";
 
 const TravelInterface = () => {
@@ -1541,6 +1542,11 @@ const TravelInterface = () => {
       setIsLoadingItinerary(false);
     }
   };
+
+  // Surprise Me view
+  if (currentView === "surprise") {
+    return <SurpriseView onBackToMain={() => setCurrentView("main")} />;
+  }
 
   // Polling view
   if (currentView === "polling" && pollId) {
