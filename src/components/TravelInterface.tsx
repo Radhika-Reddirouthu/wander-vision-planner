@@ -43,6 +43,7 @@ import heroImage from "@/assets/hero-travel.jpg";
 import ChatBot from "./ChatBot";
 import PollingView from "./PollingView";
 import SurpriseView from "./SurpriseView";
+import PlaceIdentifier from "./PlaceIdentifier";
 import { useAuth } from "@/hooks/useAuth";
 
 const TravelInterface = () => {
@@ -1546,6 +1547,11 @@ const TravelInterface = () => {
   // Surprise Me view
   if (currentView === "surprise") {
     return <SurpriseView onBackToMain={() => setCurrentView("main")} />;
+  }
+
+  // AI Place Identifier view
+  if (currentView === "identify") {
+    return <PlaceIdentifier onBack={() => setCurrentView("main")} />;
   }
 
   // Polling view
