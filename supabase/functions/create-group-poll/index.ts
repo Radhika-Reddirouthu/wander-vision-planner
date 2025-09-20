@@ -174,16 +174,17 @@ serve(async (req) => {
       `
 
       try {
+        const fromEmail = Deno.env.get('RESEND_FROM') || 'Travel Planner <noreply@grouppolls.wanderplanner.com>';
         const result = await resend.emails.send({
-          from: 'Travel Planner <delivered@resend.dev>',
+          from: fromEmail,
           to: [email.trim()],
           subject: `Group Trip Poll: ${destination} - Your Input Needed!`,
           html: emailHtml
         })
-        console.log(`Email sent successfully to ${email}:`, result)
+        console.log(`Email sent successfully to ${email} from ${fromEmail}:`, result)
         return result
       } catch (error) {
-        console.error(`Failed to send email to ${email}:`, error)
+        console.error(`Failed to send email to ${email}:`, error.message || error)
         throw error
       }
     })
@@ -228,15 +229,16 @@ serve(async (req) => {
     `
 
     try {
+      const fromEmail = Deno.env.get('RESEND_FROM') || 'Travel Planner <noreply@grouppolls.wanderplanner.com>';
       const organizerResult = await resend.emails.send({
-        from: 'Travel Planner <delivered@resend.dev>',
+        from: fromEmail,
         to: [organizerEmail],
         subject: `Poll Created: ${destination} Group Trip`,
         html: organizerEmailHtml
       })
-      console.log('Organizer confirmation email sent successfully:', organizerResult)
+      console.log(`Organizer confirmation email sent successfully from ${fromEmail}:`, organizerResult)
     } catch (error) {
-      console.error('Failed to send organizer confirmation email:', error)
+      console.error('Failed to send organizer confirmation email:', error.message || error)
       // Don't throw here as the main functionality worked
     }
 
