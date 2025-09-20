@@ -132,8 +132,15 @@ serve(async (req) => {
       .update({ google_form_url: formUrl })
       .eq('id', pollId)
 
-    // Send emails to all group members
-    const emailPromises = memberEmails.map(async (email: string) => {
+    // Include organizer in the member emails list so they also get the poll
+    const allRecipients = [...memberEmails, organizerEmail].filter((email, index, array) => 
+      array.indexOf(email) === index // Remove duplicates
+    )
+    
+    // Send emails to all group members including organizer
+    const emailPromises = allRecipients.map(async (email: string) => {
+      console.log(`Sending poll email to: ${email}`)
+      
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #2563eb;">Group Trip Poll - ${destination}</h1>
@@ -144,7 +151,7 @@ serve(async (req) => {
             <h3>Trip Details:</h3>
             <ul>
               <li><strong>Destination:</strong> ${destination}</li>
-            <li><strong>Dates:</strong> ${departDate} to ${returnDate}</li>
+              <li><strong>Dates:</strong> ${departDate} to ${returnDate}</li>
               <li><strong>Trip Type:</strong> ${tripType}</li>
               <li><strong>Group Size:</strong> ${groupSize ? `${groupSize} people` : 'Not specified'}</li>
               <li><strong>Budget:</strong> ${budget}</li>
@@ -166,17 +173,27 @@ serve(async (req) => {
         </div>
       `
 
-      return resend.emails.send({
-        from: 'Travel Planner <onboarding@resend.dev>',
-        to: [email.trim()],
-        subject: `Group Trip Poll: ${destination} - Your Input Needed!`,
-        html: emailHtml
-      })
+      try {
+        const result = await resend.emails.send({
+          from: 'Travel Planner <onboarding@resend.dev>',
+          to: [email.trim()],
+          subject: `Group Trip Poll: ${destination} - Your Input Needed!`,
+          html: emailHtml
+        })
+        console.log(`Email sent successfully to ${email}:`, result)
+        return result
+      } catch (error) {
+        console.error(`Failed to send email to ${email}:`, error)
+        throw error
+      }
     })
 
-    await Promise.all(emailPromises)
+    const emailResults = await Promise.all(emailPromises)
+    console.log('All emails sent, results:', emailResults)
 
-    // Also send confirmation email to organizer with poll access
+    // Send confirmation email to organizer with poll access
+    console.log(`Sending confirmation email to organizer: ${organizerEmail}`)
+    
     const organizerEmailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #2563eb;">Poll Created Successfully!</h1>
@@ -210,12 +227,18 @@ serve(async (req) => {
       </div>
     `
 
-    await resend.emails.send({
-      from: 'Travel Planner <onboarding@resend.dev>',
-      to: [organizerEmail],
-      subject: `Poll Created: ${destination} Group Trip`,
-      html: organizerEmailHtml
-    })
+    try {
+      const organizerResult = await resend.emails.send({
+        from: 'Travel Planner <onboarding@resend.dev>',
+        to: [organizerEmail],
+        subject: `Poll Created: ${destination} Group Trip`,
+        html: organizerEmailHtml
+      })
+      console.log('Organizer confirmation email sent successfully:', organizerResult)
+    } catch (error) {
+      console.error('Failed to send organizer confirmation email:', error)
+      // Don't throw here as the main functionality worked
+    }
 
     return new Response(JSON.stringify({ 
       pollId,
