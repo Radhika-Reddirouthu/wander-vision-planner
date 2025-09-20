@@ -67,7 +67,7 @@ const TravelInterface = () => {
   const [pollId, setPollId] = useState<string | null>(null);
   const [pollResults, setPollResults] = useState<any>(null);
 
-  // Fetch destination info when destination and dates are selected
+  // Fetch destination info when destination and dates are selected (moved after dates section)
   useEffect(() => {
     const fetchDestinationInfo = async () => {
       if (destination.trim().length > 2 && departDate && returnDate) {
@@ -88,7 +88,7 @@ const TravelInterface = () => {
           setIsLoadingDestination(false);
         }
       } else {
-        setDestinationInfo(null); // Clear info if dates not selected
+        setDestinationInfo(null);
       }
     };
 
@@ -436,154 +436,20 @@ const TravelInterface = () => {
                       onChange={(e) => setDestination(e.target.value)}
                       className="text-lg p-4"
                     />
-                    
-                    {/* Real-time destination analysis */}
-                    {destination.length > 2 && !departDate && !returnDate && (
-                      <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 flex items-center space-x-2">
-                        <Info className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-blue-700 dark:text-blue-300">Select travel dates to get detailed destination analysis and timing recommendations</span>
-                      </div>
-                    )}
-                    
-                    {isLoadingDestination && (
-                      <div className="mt-3 p-4 bg-accent/20 rounded-lg border flex items-center space-x-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="text-sm">Analyzing destination...</span>
-                      </div>
-                    )}
-                    
-                    {destinationInfo && !destinationInfo.error && (
-                      <Card className="mt-4">
-                        <CardHeader>
-                          <CardTitle className="flex items-center space-x-2">
-                            <MapPin className="w-5 h-5 text-primary" />
-                            <span>{destinationInfo.name}</span>
-                            {destinationInfo.isRecommendedNow ? (
-                              <Badge className="bg-green-500 text-white">Perfect Time!</Badge>
-                            ) : (
-                              <Badge variant="outline" className="border-orange-500 text-orange-500">Check Conditions</Badge>
-                            )}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <p className="text-muted-foreground">{destinationInfo.description}</p>
-                          
-                          {/* Travel Safety Status */}
-                          {destinationInfo.travelSafetyStatus && (
-                            <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                              <h4 className="font-semibold mb-2 flex items-center text-blue-700 dark:text-blue-300">
-                                <Shield className="w-4 h-4 mr-2" />
-                                Current Travel Safety Status
-                              </h4>
-                              <p className="text-sm text-blue-700 dark:text-blue-300">{destinationInfo.travelSafetyStatus}</p>
-                            </div>
-                          )}
-
-                          {/* Current Season Advice */}
-                          {destinationInfo.currentSeasonAdvice && (
-                            <div className={`p-4 rounded-lg border ${destinationInfo.isRecommendedNow 
-                              ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
-                              : 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800'}`}>
-                              <h4 className={`font-semibold mb-2 flex items-center ${destinationInfo.isRecommendedNow 
-                                ? 'text-green-700 dark:text-green-300' 
-                                : 'text-orange-700 dark:text-orange-300'}`}>
-                                <Clock className="w-4 h-4 mr-2" />
-                                Current Season Advice
-                              </h4>
-                              <p className={`text-sm ${destinationInfo.isRecommendedNow 
-                                ? 'text-green-700 dark:text-green-300' 
-                                : 'text-orange-700 dark:text-orange-300'}`}>
-                                {destinationInfo.currentSeasonAdvice}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Recommendation Status */}
-                          {destinationInfo.reasonForRecommendation && (
-                            <div className={`p-4 rounded-lg border ${destinationInfo.isRecommendedNow 
-                              ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
-                              : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'}`}>
-                              <h4 className={`font-semibold mb-2 flex items-center ${destinationInfo.isRecommendedNow 
-                                ? 'text-green-700 dark:text-green-300' 
-                                : 'text-red-700 dark:text-red-300'}`}>
-                                {destinationInfo.isRecommendedNow ? (
-                                  <><CheckCircle className="w-4 h-4 mr-2" />Why This is Perfect Timing</>
-                                ) : (
-                                  <><AlertTriangle className="w-4 h-4 mr-2" />Important Considerations</>
-                                )}
-                              </h4>
-                              <p className={`text-sm ${destinationInfo.isRecommendedNow 
-                                ? 'text-green-700 dark:text-green-300' 
-                                : 'text-red-700 dark:text-red-300'}`}>
-                                {destinationInfo.reasonForRecommendation}
-                              </p>
-                            </div>
-                          )}
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <h4 className="font-semibold mb-2 flex items-center">
-                                <CalendarDays className="w-4 h-4 mr-2" />
-                                Optimal Visit Timing
-                              </h4>
-                              <p className="text-sm text-muted-foreground">{destinationInfo.bestTimeToVisit}</p>
-                            </div>
-                            
-                            <div>
-                              <h4 className="font-semibold mb-2 flex items-center">
-                                <Thermometer className="w-4 h-4 mr-2" />
-                                Climate Details
-                              </h4>
-                              <p className="text-sm text-muted-foreground">{destinationInfo.climate}</p>
-                            </div>
-                          </div>
-
-                          {destinationInfo.upcomingLongWeekends && destinationInfo.upcomingLongWeekends.length > 0 && (
-                            <div>
-                              <h4 className="font-semibold mb-2 flex items-center">
-                                <CalendarDays className="w-4 h-4 mr-2" />
-                                Upcoming Long Weekends
-                              </h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                {destinationInfo.upcomingLongWeekends.map((weekend, index) => (
-                                  <div key={index} className="bg-gradient-ocean/10 rounded-lg p-3 border border-primary/20">
-                                    <p className="font-medium text-sm">{weekend.name}</p>
-                                    <p className="text-xs text-muted-foreground">{weekend.dates}</p>
-                                    <span className="inline-block mt-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
-                                      {weekend.type}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div>
-                            <h4 className="font-semibold mb-2 flex items-center">
-                              <Star className="w-4 h-4 mr-2" />
-                              Top Highlights
-                            </h4>
-                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                              {destinationInfo.highlights?.map((highlight, index) => (
-                                <li key={index}>{highlight}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          
-                          <div>
-                            <h4 className="font-semibold mb-2 flex items-center">
-                              <Info className="w-4 h-4 mr-2" />
-                              Travel Tips
-                            </h4>
-                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                              {destinationInfo.travelTips?.map((tip, index) => (
-                                <li key={index}>{tip}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                     
+                     {destination.length > 2 && !departDate && !returnDate && (
+                       <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 flex items-center space-x-2">
+                         <Info className="w-4 h-4 text-blue-600" />
+                         <span className="text-sm text-blue-700 dark:text-blue-300">Select travel dates to get detailed destination analysis and timing recommendations</span>
+                       </div>
+                     )}
+                     
+                     {isLoadingDestination && (
+                       <div className="mt-3 p-4 bg-accent/20 rounded-lg border flex items-center space-x-2">
+                         <Loader2 className="w-4 h-4 animate-spin" />
+                         <span className="text-sm">Analyzing destination...</span>
+                       </div>
+                     )}
                   </div>
 
                   {/* Travel Dates */}
@@ -643,7 +509,82 @@ const TravelInterface = () => {
                         </Popover>
                       </div>
                     </div>
-                  </div>
+                   </div>
+
+                   {/* Destination Analysis - Appears after dates are selected */}
+                   {isLoadingDestination && (
+                     <div className="p-4 bg-accent/20 rounded-lg border flex items-center space-x-2">
+                       <Loader2 className="w-4 h-4 animate-spin" />
+                       <span className="text-sm">Getting destination insights...</span>
+                     </div>
+                   )}
+
+                   {destinationInfo && !destinationInfo.error && (
+                     <Card>
+                       <CardHeader>
+                         <CardTitle className="flex items-center space-x-2 text-lg">
+                           <MapPin className="w-5 h-5 text-primary" />
+                           <span>{destinationInfo.name}</span>
+                           {destinationInfo.isRecommendedNow ? (
+                             <Badge className="bg-green-500 text-white">Perfect Time!</Badge>
+                           ) : (
+                             <Badge variant="outline" className="border-orange-500 text-orange-500">Check Timing</Badge>
+                           )}
+                         </CardTitle>
+                       </CardHeader>
+                       <CardContent className="space-y-3">
+                         {/* Key recommendation */}
+                         {destinationInfo.reasonForRecommendation && (
+                           <div className={`p-3 rounded-lg border ${destinationInfo.isRecommendedNow 
+                             ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
+                             : 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800'}`}>
+                             <h4 className={`font-medium mb-1 flex items-center text-sm ${destinationInfo.isRecommendedNow 
+                               ? 'text-green-700 dark:text-green-300' 
+                               : 'text-orange-700 dark:text-orange-300'}`}>
+                               {destinationInfo.isRecommendedNow ? (
+                                 <><CheckCircle className="w-4 h-4 mr-2" />Perfect Timing</>
+                               ) : (
+                                 <><AlertTriangle className="w-4 h-4 mr-2" />Timing Note</>
+                               )}
+                             </h4>
+                             <p className={`text-xs ${destinationInfo.isRecommendedNow 
+                               ? 'text-green-600 dark:text-green-400' 
+                               : 'text-orange-600 dark:text-orange-400'}`}>
+                               {destinationInfo.reasonForRecommendation}
+                             </p>
+                           </div>
+                         )}
+
+                         <div className="grid grid-cols-2 gap-4 text-sm">
+                           <div>
+                             <h4 className="font-medium mb-1 flex items-center">
+                               <Thermometer className="w-4 h-4 mr-1" />
+                               Weather
+                             </h4>
+                             <p className="text-xs text-muted-foreground">{destinationInfo.climate}</p>
+                           </div>
+                           <div>
+                             <h4 className="font-medium mb-1 flex items-center">
+                               <CalendarDays className="w-4 h-4 mr-1" />
+                               Best Time
+                             </h4>
+                             <p className="text-xs text-muted-foreground">{destinationInfo.bestTimeToVisit}</p>
+                           </div>
+                         </div>
+
+                         {/* Safety status - only if important */}
+                         {destinationInfo.travelSafetyStatus && !destinationInfo.travelSafetyStatus.toLowerCase().includes('safe') && (
+                           <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                             <h4 className="font-medium mb-1 flex items-center text-sm text-blue-700 dark:text-blue-300">
+                               <Shield className="w-4 h-4 mr-2" />
+                               Safety Note
+                             </h4>
+                             <p className="text-xs text-blue-600 dark:text-blue-400">{destinationInfo.travelSafetyStatus}</p>
+                           </div>
+                         )}
+                       </CardContent>
+                     </Card>
+                   )}
 
                   {/* Budget */}
                   <div>
