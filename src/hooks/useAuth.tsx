@@ -28,10 +28,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
         
         // Check onboarding status for authenticated users
-        if (session?.user) {
-          setTimeout(() => {
-            checkOnboardingStatus(session.user.id);
-          }, 0);
+        if (session?.user && event !== 'SIGNED_OUT') {
+          // Only check onboarding on initial sign in, not on token refresh
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            setTimeout(() => {
+              checkOnboardingStatus(session.user.id);
+            }, 0);
+          }
         } else {
           setNeedsOnboarding(false);
         }

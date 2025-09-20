@@ -167,7 +167,7 @@ serve(async (req) => {
       `
 
       return resend.emails.send({
-        from: 'Travel Planner <noreply@lovableproject.com>',
+        from: 'Travel Planner <onboarding@resend.dev>',
         to: [email.trim()],
         subject: `Group Trip Poll: ${destination} - Your Input Needed!`,
         html: emailHtml
@@ -211,7 +211,7 @@ serve(async (req) => {
     `
 
     await resend.emails.send({
-      from: 'Travel Planner <noreply@lovableproject.com>',
+      from: 'Travel Planner <onboarding@resend.dev>',
       to: [organizerEmail],
       subject: `Poll Created: ${destination} Group Trip`,
       html: organizerEmailHtml

@@ -174,7 +174,8 @@ const Onboarding = () => {
         description: "Your travel preferences have been saved. Let's start planning your perfect trip!"
       });
 
-      navigate('/');
+      // Force navigation immediately without waiting for auth state change
+      window.location.href = '/';
     } catch (error: any) {
       console.error('Error saving preferences:', error);
       toast({

@@ -42,8 +42,10 @@ import {
 import heroImage from "@/assets/hero-travel.jpg";
 import ChatBot from "./ChatBot";
 import PollingView from "./PollingView";
+import { useAuth } from "@/hooks/useAuth";
 
 const TravelInterface = () => {
+  const { user } = useAuth();
   const [tripType, setTripType] = useState("");
   const [groupType, setGroupType] = useState("");
   const [groupSize, setGroupSize] = useState("");
@@ -64,7 +66,6 @@ const TravelInterface = () => {
   const [enableGroupPolling, setEnableGroupPolling] = useState(false);
   const [pollId, setPollId] = useState<string | null>(null);
   const [pollResults, setPollResults] = useState<any>(null);
-  const [organizerEmail, setOrganizerEmail] = useState("");
 
   // Fetch destination info when destination and dates are selected
   useEffect(() => {
@@ -147,8 +148,14 @@ const TravelInterface = () => {
       // If group polling is enabled, create a poll first
       if (groupType === "group" && enableGroupPolling) {
         const validEmails = emails.filter(email => email.trim() !== "");
-        if (validEmails.length === 0 || !organizerEmail.trim()) {
-          alert("Please provide organizer email and at least one group member email for polling");
+        if (validEmails.length === 0) {
+          alert("Please provide at least one group member email for polling");
+          setIsLoadingItinerary(false);
+          return;
+        }
+
+        if (!user?.email) {
+          alert("You must be logged in to create a group poll");
           setIsLoadingItinerary(false);
           return;
         }
@@ -163,7 +170,7 @@ const TravelInterface = () => {
             returnDate: format(returnDate, 'yyyy-MM-dd'),
             budget,
             needsFlights,
-            organizerEmail: organizerEmail.trim(),
+            organizerEmail: user.email,
             memberEmails: validEmails
           }
         });
@@ -699,20 +706,11 @@ const TravelInterface = () => {
                               🗳️ Create a group poll to let everyone vote on preferences for accommodation, activities, food, and transport. The itinerary will be customized based on majority preferences.
                             </p>
                             <div className="space-y-3">
-                              <div>
-                                <Label htmlFor="organizerEmail" className="text-sm font-medium mb-1 block">
-                                  Organizer Email (Your Email)
-                                </Label>
-                                <div className="flex items-center space-x-2">
-                                  <Mail className="w-5 h-5 text-muted-foreground" />
-                                  <Input
-                                    id="organizerEmail"
-                                    placeholder="your.email@example.com"
-                                    value={organizerEmail}
-                                    onChange={(e) => setOrganizerEmail(e.target.value)}
-                                    className="flex-1"
-                                    type="email"
-                                  />
+                              <div className="flex items-center space-x-2 p-3 bg-primary/10 rounded-lg">
+                                <Mail className="w-5 h-5 text-primary" />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-primary">Poll organizer: {user?.email}</p>
+                                  <p className="text-xs text-muted-foreground">Emails will be sent from your account</p>
                                 </div>
                               </div>
                             </div>
@@ -755,7 +753,7 @@ const TravelInterface = () => {
 
                   <Button 
                     onClick={handleCreateItinerary}
-                    disabled={!destination || !tripType || !groupType || !departDate || !returnDate || !budget || isLoadingItinerary || (groupType === "group" && enableGroupPolling && (!organizerEmail || emails.filter(email => email.trim()).length === 0))}
+                    disabled={!destination || !tripType || !groupType || !departDate || !returnDate || !budget || isLoadingItinerary || (groupType === "group" && enableGroupPolling && emails.filter(email => email.trim()).length === 0)}
                     className="w-full bg-gradient-ocean text-white text-lg py-6 hover:scale-105 transition-all duration-300"
                   >
                     {isLoadingItinerary ? (
