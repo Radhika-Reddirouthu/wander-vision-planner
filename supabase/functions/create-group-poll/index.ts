@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { Resend } from "npm:resend@4.0.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,8 +17,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
-
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
 
     const { 
       destination, 
@@ -108,8 +105,12 @@ serve(async (req) => {
       throw questionsError
     }
 
-    // Insert poll members
-    const pollMembers = memberEmails.map((email: string) => ({
+    // Insert poll members (including organizer)
+    const allMembers = [...memberEmails, organizerEmail].filter((email, index, array) => 
+      array.indexOf(email.trim()) === index // Remove duplicates
+    )
+    
+    const pollMembers = allMembers.map((email: string) => ({
       poll_id: pollId,
       email: email.trim()
     }))
@@ -132,115 +133,9 @@ serve(async (req) => {
       .update({ google_form_url: formUrl })
       .eq('id', pollId)
 
-    // Include organizer in the member emails list so they also get the poll
-    const allRecipients = [...memberEmails, organizerEmail].filter((email, index, array) => 
-      array.indexOf(email) === index // Remove duplicates
-    )
-    
-    // Send emails to all group members including organizer
-    const emailPromises = allRecipients.map(async (email: string) => {
-      console.log(`Sending poll email to: ${email}`)
-      
-      const emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #2563eb;">Group Trip Poll - ${destination}</h1>
-          <p>Hi there!</p>
-          <p>${organizerEmail} has invited you to participate in planning a group trip to <strong>${destination}</strong>.</p>
-          
-          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3>Trip Details:</h3>
-            <ul>
-              <li><strong>Destination:</strong> ${destination}</li>
-              <li><strong>Dates:</strong> ${departDate} to ${returnDate}</li>
-              <li><strong>Trip Type:</strong> ${tripType}</li>
-              <li><strong>Group Size:</strong> ${groupSize ? `${groupSize} people` : 'Not specified'}</li>
-              <li><strong>Budget:</strong> ${budget}</li>
-            </ul>
-          </div>
-          
-          <p>Please take a moment to share your preferences for accommodation, activities, food, and transportation by clicking the link below:</p>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${formUrl}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-              Complete Poll
-            </a>
-          </div>
-          
-          <p>Your responses will help us create an itinerary that everyone will love!</p>
-          <p>The poll will close in 7 days, so please respond soon.</p>
-          
-          <p>Happy travels!<br>The Travel Planning Team</p>
-        </div>
-      `
-
-      try {
-        const fromEmail = Deno.env.get('RESEND_FROM') || 'Travel Planner <noreply@grouppolls.wanderplanner.com>';
-        const result = await resend.emails.send({
-          from: fromEmail,
-          to: [email.trim()],
-          subject: `Group Trip Poll: ${destination} - Your Input Needed!`,
-          html: emailHtml
-        })
-        console.log(`Email sent successfully to ${email} from ${fromEmail}:`, result)
-        return result
-      } catch (error) {
-        console.error(`Failed to send email to ${email}:`, error.message || error)
-        throw error
-      }
-    })
-
-    const emailResults = await Promise.all(emailPromises)
-    console.log('All emails sent, results:', emailResults)
-
-    // Send confirmation email to organizer with poll access
-    console.log(`Sending confirmation email to organizer: ${organizerEmail}`)
-    
-    const organizerEmailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #2563eb;">Poll Created Successfully!</h1>
-        <p>Hi ${organizerEmail},</p>
-        <p>Your group trip poll for <strong>${destination}</strong> has been created and sent to all group members.</p>
-        
-        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3>Poll Summary:</h3>
-          <ul>
-            <li><strong>Destination:</strong> ${destination}</li>
-            <li><strong>Dates:</strong> ${departDate} to ${returnDate}</li>
-            <li><strong>Group Size:</strong> ${groupSize ? `${groupSize} people` : 'Not specified'}</li>
-            <li><strong>Group Members:</strong> ${memberEmails.length} people</li>
-            <li><strong>Poll ID:</strong> ${pollId}</li>
-          </ul>
-        </div>
-        
-        <p><strong>Important:</strong> As the organizer, don't forget to fill out the poll yourself!</p>
-        
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${formUrl}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-            Complete Your Poll Response
-          </a>
-        </div>
-        
-        <p>Group members have 7 days to respond. Once responses are collected, we'll generate a customized itinerary based on the majority preferences.</p>
-        
-        <p>You can track poll progress and view results using your poll ID above.</p>
-        
-        <p>Happy planning!<br>The Travel Planning Team</p>
-      </div>
-    `
-
-    try {
-      const fromEmail = Deno.env.get('RESEND_FROM') || 'Travel Planner <noreply@grouppolls.wanderplanner.com>';
-      const organizerResult = await resend.emails.send({
-        from: fromEmail,
-        to: [organizerEmail],
-        subject: `Poll Created: ${destination} Group Trip`,
-        html: organizerEmailHtml
-      })
-      console.log(`Organizer confirmation email sent successfully from ${fromEmail}:`, organizerResult)
-    } catch (error) {
-      console.error('Failed to send organizer confirmation email:', error.message || error)
-      // Don't throw here as the main functionality worked
-    }
+    console.log(`Poll created successfully. Members (including organizer): ${allMembers.join(', ')}`)
+    console.log(`Poll form URL: ${formUrl}`)
+    console.log('Note: Organizer has been added as a poll member and can participate in the poll.')
 
     return new Response(JSON.stringify({ 
       pollId,
