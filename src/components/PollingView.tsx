@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Users, Vote, CheckCircle, Clock, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface PollingViewProps {
   pollId: string;
@@ -17,6 +19,7 @@ const PollingView: React.FC<PollingViewProps> = ({
   onBackToPlanning,
   onProceedToItinerary
 }) => {
+  const { user } = useAuth();
   const [pollResults, setPollResults] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingItinerary, setIsGeneratingItinerary] = useState(false);
@@ -44,12 +47,51 @@ const PollingView: React.FC<PollingViewProps> = ({
   }, [pollId]);
 
   const handleGenerateItinerary = async () => {
+    if (!pollResults || !user) return;
+    
     setIsGeneratingItinerary(true);
+    
     try {
-      // Pass poll results to parent component for itinerary generation
-      onProceedToItinerary(pollResults);
+      // Get current trip data for itinerary generation
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('draft_trip_data')
+        .eq('user_id', user.id)
+        .single();
+
+      const tripData = profile?.draft_trip_data as any;
+      
+      // Generate itinerary with poll results and saved trip data
+      const { data, error } = await supabase.functions.invoke('create-itinerary', {
+        body: {
+          destination: tripData?.destination || pollResults.poll?.destination,
+          tripType: tripData?.tripType || 'leisure',
+          groupType: 'group',
+          groupSize: tripData?.groupSize || '4',
+          departDate: tripData?.departDate ? format(new Date(tripData.departDate), 'yyyy-MM-dd') : '',
+          returnDate: tripData?.returnDate ? format(new Date(tripData.returnDate), 'yyyy-MM-dd') : '',
+          budget: tripData?.budget || '50000',
+          needsFlights: tripData?.needsFlights || false,
+          pollResults: pollResults
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Clear active poll ID and update last step
+      await supabase
+        .from('user_profiles')
+        .update({ 
+          active_poll_id: null,
+          last_planning_step: "itinerary"
+        })
+        .eq('user_id', user.id);
+      
+      // Pass the results back to parent
+      onProceedToItinerary(data);
     } catch (error) {
-      console.error('Error generating itinerary:', error);
+      console.error('Error creating itinerary:', error);
+      alert('Error creating itinerary. Please try again.');
     } finally {
       setIsGeneratingItinerary(false);
     }

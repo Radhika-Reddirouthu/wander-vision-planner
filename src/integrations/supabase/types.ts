@@ -221,17 +221,20 @@ export type Database = {
       user_profiles: {
         Row: {
           accommodation_style: string | null
+          active_poll_id: string | null
           activity_level: string | null
           adventure_seeking: string | null
           budget_flexibility: string | null
           created_at: string
           cultural_interest: string | null
           display_name: string | null
+          draft_trip_data: Json | null
           email: string
           environment_preference: string | null
           food_adventure_level: string | null
           group_dynamics: string | null
           id: string
+          last_planning_step: string | null
           nightlife_preference: string | null
           onboarding_completed: boolean
           pace_preference: string | null
@@ -243,17 +246,20 @@ export type Database = {
         }
         Insert: {
           accommodation_style?: string | null
+          active_poll_id?: string | null
           activity_level?: string | null
           adventure_seeking?: string | null
           budget_flexibility?: string | null
           created_at?: string
           cultural_interest?: string | null
           display_name?: string | null
+          draft_trip_data?: Json | null
           email: string
           environment_preference?: string | null
           food_adventure_level?: string | null
           group_dynamics?: string | null
           id?: string
+          last_planning_step?: string | null
           nightlife_preference?: string | null
           onboarding_completed?: boolean
           pace_preference?: string | null
@@ -265,17 +271,20 @@ export type Database = {
         }
         Update: {
           accommodation_style?: string | null
+          active_poll_id?: string | null
           activity_level?: string | null
           adventure_seeking?: string | null
           budget_flexibility?: string | null
           created_at?: string
           cultural_interest?: string | null
           display_name?: string | null
+          draft_trip_data?: Json | null
           email?: string
           environment_preference?: string | null
           food_adventure_level?: string | null
           group_dynamics?: string | null
           id?: string
+          last_planning_step?: string | null
           nightlife_preference?: string | null
           onboarding_completed?: boolean
           pace_preference?: string | null

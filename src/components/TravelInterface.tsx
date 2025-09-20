@@ -66,38 +66,150 @@ const TravelInterface = () => {
   const [enableGroupPolling, setEnableGroupPolling] = useState(false);
   const [pollId, setPollId] = useState<string | null>(null);
   const [pollResults, setPollResults] = useState<any>(null);
+  const [isLoadingUserData, setIsLoadingUserData] = useState(true);
 
-  // Fetch destination info when destination and dates are selected (moved after dates section)
+  // Load user's saved trip data and check for active polls on component mount
   useEffect(() => {
-    const fetchDestinationInfo = async () => {
-      if (destination.trim().length > 2 && departDate && returnDate) {
-        setIsLoadingDestination(true);
-        try {
-          const { data, error } = await supabase.functions.invoke('get-destination-info', {
-            body: { 
-              destination,
-              departDate: format(departDate, 'yyyy-MM-dd'),
-              returnDate: format(returnDate, 'yyyy-MM-dd')
-            }
-          });
-          if (error) throw error;
-          setDestinationInfo(data);
-        } catch (error) {
-          console.error('Error fetching destination info:', error);
-        } finally {
-          setIsLoadingDestination(false);
+    const loadUserData = async () => {
+      if (!user) return;
+      
+      setIsLoadingUserData(true);
+      try {
+        // Load user profile with saved data
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('draft_trip_data, active_poll_id, last_planning_step')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error loading user data:', error);
+          return;
         }
-      } else {
-        setDestinationInfo(null);
+
+        // Restore saved trip planning data
+        if (profile?.draft_trip_data) {
+          const savedData = profile.draft_trip_data as any;
+          setTripType(savedData.tripType || "");
+          setGroupType(savedData.groupType || "");
+          setGroupSize(savedData.groupSize || "");
+          setDestination(savedData.destination || "");
+          setBudget(savedData.budget || "");
+          setNeedsFlights(savedData.needsFlights || false);
+          setEnableGroupPolling(savedData.enableGroupPolling || false);
+          setEmails(savedData.emails || [""]);
+          
+          // Restore dates
+          if (savedData.departDate) setDepartDate(new Date(savedData.departDate));
+          if (savedData.returnDate) setReturnDate(new Date(savedData.returnDate));
+          
+          // Set current view based on last step
+          if (profile.last_planning_step) {
+            setCurrentView(profile.last_planning_step);
+          } else if (savedData.tripType) {
+            setCurrentView("plan");
+          }
+        }
+
+        // Check for active poll
+        if (profile?.active_poll_id) {
+          setPollId(profile.active_poll_id);
+          setCurrentView("polling");
+        }
+
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setIsLoadingUserData(false);
       }
     };
 
-    const timeoutId = setTimeout(fetchDestinationInfo, 1000);
+    loadUserData();
+  }, [user]);
+
+  // Save trip data automatically when form values change
+  useEffect(() => {
+    const saveTripData = async () => {
+      if (!user || isLoadingUserData) return;
+
+      const tripData = {
+        tripType,
+        groupType,
+        groupSize,
+        destination,
+        departDate: departDate?.toISOString(),
+        returnDate: returnDate?.toISOString(),
+        budget,
+        needsFlights,
+        enableGroupPolling,
+        emails
+      };
+
+      // Only save if there's meaningful data
+      if (tripType || destination || budget) {
+        try {
+          await supabase
+            .from('user_profiles')
+            .update({ 
+              draft_trip_data: tripData,
+              last_planning_step: currentView === "main" ? "plan" : currentView
+            })
+            .eq('user_id', user.id);
+        } catch (error) {
+          console.error('Error saving trip data:', error);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(saveTripData, 1000); // Debounce saves
     return () => clearTimeout(timeoutId);
-  }, [destination, departDate, returnDate]);
+  }, [user, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, enableGroupPolling, emails, currentView, isLoadingUserData]);
 
   const addEmailField = () => {
     setEmails([...emails, ""]);
+  };
+
+  const onProceedToItinerary = async (pollResults: any) => {
+    if (!pollResults || !user) return;
+    
+    setPollResults(pollResults);
+    setIsLoadingItinerary(true);
+    
+    try {
+      // Generate itinerary with poll results
+      const { data, error } = await supabase.functions.invoke('create-itinerary', {
+        body: {
+          destination,
+          tripType,
+          groupType,
+          groupSize: groupType === "group" ? groupSize : "1",
+          departDate: departDate ? format(departDate, 'yyyy-MM-dd') : '',
+          returnDate: returnDate ? format(returnDate, 'yyyy-MM-dd') : '',
+          budget,
+          needsFlights,
+          pollResults: pollResults
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Clear active poll ID and update last step
+      await supabase
+        .from('user_profiles')
+        .update({ 
+          active_poll_id: null,
+          last_planning_step: "itinerary"
+        })
+        .eq('user_id', user.id);
+      
+      setItinerary(data);
+      setCurrentView('itinerary');
+    } catch (error) {
+      console.error('Error creating itinerary:', error);
+      alert('Error creating itinerary. Please try again.');
+    } finally {
+      setIsLoadingItinerary(false);
+    }
   };
 
   const updateEmail = (index: number, value: string) => {
@@ -129,6 +241,41 @@ const TravelInterface = () => {
         }
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const clearTripData = async () => {
+    if (!user) return;
+    
+    // Reset all form state
+    setTripType("");
+    setGroupType("");
+    setGroupSize("");
+    setDestination("");
+    setDepartDate(undefined);
+    setReturnDate(undefined);
+    setBudget("");
+    setNeedsFlights(false);
+    setEnableGroupPolling(false);
+    setEmails([""]);
+    setDestinationInfo(null);
+    setItinerary(null);
+    setPollId(null);
+    setPollResults(null);
+    setCurrentView("main");
+
+    // Clear saved data from database
+    try {
+      await supabase
+        .from('user_profiles')
+        .update({ 
+          draft_trip_data: null,
+          active_poll_id: null,
+          last_planning_step: null
+        })
+        .eq('user_id', user.id);
+    } catch (error) {
+      console.error('Error clearing trip data:', error);
     }
   };
 
@@ -177,6 +324,15 @@ const TravelInterface = () => {
 
         if (pollError) throw pollError;
         
+        // Save active poll ID to user profile
+        await supabase
+          .from('user_profiles')
+          .update({ 
+            active_poll_id: pollData.pollId,
+            last_planning_step: "polling"
+          })
+          .eq('user_id', user.id);
+        
         setPollId(pollData.pollId);
         setCurrentView("polling");
         return;
@@ -198,6 +354,16 @@ const TravelInterface = () => {
       });
       
       if (error) throw error;
+      
+      // Clear active poll ID and update last step
+      await supabase
+        .from('user_profiles')
+        .update({ 
+          active_poll_id: null,
+          last_planning_step: "itinerary"
+        })
+        .eq('user_id', user.id);
+      
       setItinerary(data);
       setCurrentView('itinerary');
     } catch (error) {
@@ -226,6 +392,18 @@ const TravelInterface = () => {
     });
     setItinerary(updatedItinerary);
   };
+
+  // Show loading state while user data is loading
+  if (isLoadingUserData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading your travel data...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Main view
   if (currentView === "main") {
@@ -320,13 +498,21 @@ const TravelInterface = () => {
     return (
       <div className="min-h-screen bg-background p-8">
         <div className="container mx-auto max-w-4xl">
-          <Button 
-            onClick={() => setCurrentView("main")}
-            variant="outline" 
-            className="mb-8"
-          >
-            ← Back to Home
-          </Button>
+          <div className="flex justify-between items-center mb-8">
+            <Button 
+              onClick={() => setCurrentView("main")}
+              variant="outline" 
+            >
+              ← Back to Home
+            </Button>
+            <Button 
+              onClick={clearTripData}
+              variant="outline"
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              🗑️ Start Fresh
+            </Button>
+          </div>
           
           <Card>
             <CardHeader>
@@ -1362,12 +1548,7 @@ const TravelInterface = () => {
       <PollingView
         pollId={pollId}
         onBackToPlanning={() => setCurrentView("plan")}
-        onProceedToItinerary={(results) => {
-          setPollResults(results);
-          setCurrentView("itinerary");
-          // Generate itinerary with poll results
-          handleCreateItineraryWithPollResults(results);
-        }}
+        onProceedToItinerary={onProceedToItinerary}
       />
     );
   }
