@@ -133,6 +133,24 @@ serve(async (req) => {
       .update({ google_form_url: formUrl })
       .eq('id', pollId)
 
+    // Send poll invites via email
+    const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-poll-invites', {
+      body: {
+        pollId,
+        destination,
+        organizerEmail,
+        memberEmails: memberEmails.filter(email => email.trim() !== organizerEmail.trim()), // Don't email organizer
+        formUrl
+      }
+    });
+
+    if (emailError) {
+      console.error('Error sending poll invites:', emailError);
+      // Continue anyway, poll is created
+    } else {
+      console.log('Poll invites sent successfully:', emailResult);
+    }
+
     console.log(`Poll created successfully. Members (including organizer): ${allMembers.join(', ')}`)
     console.log(`Poll form URL: ${formUrl}`)
     console.log('Note: Organizer has been added as a poll member and can participate in the poll.')
@@ -140,7 +158,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       pollId,
       formUrl,
-      message: 'Poll created and emails sent successfully'
+      message: 'Poll created and invites sent successfully',
+      emailResult
     }), {
       headers: { 
         ...corsHeaders,

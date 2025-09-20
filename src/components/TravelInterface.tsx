@@ -264,7 +264,8 @@ const TravelInterface = () => {
     setItinerary(null);
     setPollId(null);
     setPollResults(null);
-    setCurrentView("main");
+    // Stay in planning view instead of going to main
+    // setCurrentView("main"); - removed this line
 
     // Clear saved data from database
     try {
@@ -273,7 +274,7 @@ const TravelInterface = () => {
         .update({ 
           draft_trip_data: null,
           active_poll_id: null,
-          last_planning_step: null
+          last_planning_step: "plan"
         })
         .eq('user_id', user.id);
     } catch (error) {

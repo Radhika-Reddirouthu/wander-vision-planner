@@ -11,3 +11,18 @@ verify_jwt = false
 
 [functions.identify-place]
 verify_jwt = false
+
+[functions.surprise-destinations]
+verify_jwt = false
+
+[functions.create-group-poll]
+verify_jwt = false
+
+[functions.get-poll-results]
+verify_jwt = false
+
+[functions.poll-form]
+verify_jwt = false
+
+[functions.send-poll-invites]
+verify_jwt = false

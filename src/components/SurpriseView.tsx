@@ -104,6 +104,7 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
 
     setIsLoading(true);
     try {
+      console.log('Fetching surprise destinations for user:', user.id);
       const { data, error } = await supabase.functions.invoke('surprise-destinations', {
         body: { 
           userId: user.id,
@@ -111,10 +112,16 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Surprise destinations error:', error);
+        throw error;
+      }
+      
+      console.log('Surprise destinations response:', data);
       setDestinations(data.suggestions || []);
     } catch (error) {
       console.error('Error fetching surprise destinations:', error);
+      alert('Error fetching destinations. Please try again.');
     } finally {
       setIsLoading(false);
     }

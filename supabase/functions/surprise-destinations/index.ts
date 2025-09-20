@@ -31,7 +31,22 @@ serve(async (req) => {
 
     if (profileError) {
       console.error('Error fetching user profile:', profileError);
-      throw profileError;
+      // Return default profile if user profile doesn't exist
+      if (profileError.code === 'PGRST116') {
+        console.log('User profile not found, using defaults');
+        profile = {
+          social_preference: 'balanced',
+          activity_level: 'moderate',
+          environment_preference: 'varied',
+          adventure_seeking: 'moderate',
+          food_adventure_level: 'moderate',
+          accommodation_style: 'comfortable',
+          cultural_interest: 'moderate',
+          nightlife_preference: 'casual'
+        };
+      } else {
+        throw profileError;
+      }
     }
 
     console.log('User profile loaded:', profile);
