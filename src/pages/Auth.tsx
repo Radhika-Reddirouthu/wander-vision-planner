@@ -77,6 +77,18 @@ const Auth = () => {
           return;
         }
 
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          toast({
+            title: "Invalid email",
+            description: "Please enter a valid email address.",
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+
         // Validate password strength
         if (password.length < 6) {
           toast({
