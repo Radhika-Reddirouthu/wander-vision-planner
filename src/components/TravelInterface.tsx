@@ -249,6 +249,36 @@ const TravelInterface = () => {
     }
   };
 
+  // Fetch destination info when destination and dates are available
+  useEffect(() => {
+    const fetchDestinationInfo = async () => {
+      if (destination.length > 2 && departDate && returnDate) {
+        setIsLoadingDestination(true);
+        try {
+          const { data, error } = await supabase.functions.invoke('get-destination-info', {
+            body: {
+              destination,
+              departDate: format(departDate, 'yyyy-MM-dd'),
+              returnDate: format(returnDate, 'yyyy-MM-dd')
+            }
+          });
+          
+          if (error) throw error;
+          setDestinationInfo(data);
+        } catch (error) {
+          console.error('Error fetching destination info:', error);
+          setDestinationInfo({ error: 'Failed to load destination information' });
+        } finally {
+          setIsLoadingDestination(false);
+        }
+      } else {
+        setDestinationInfo(null);
+      }
+    };
+
+    fetchDestinationInfo();
+  }, [destination, departDate, returnDate]);
+
   const clearTripData = async () => {
     if (!user) return;
     
@@ -356,7 +386,7 @@ const TravelInterface = () => {
           groupSize: groupType === "group" ? groupSize : "1",
           departDate: format(departDate, 'yyyy-MM-dd'),
           returnDate: format(returnDate, 'yyyy-MM-dd'),
-          budget,
+          budget: budget || "₹50,000", // Provide default budget if empty
           needsFlights,
           pollResults: pollResults // Include poll results if available
         }

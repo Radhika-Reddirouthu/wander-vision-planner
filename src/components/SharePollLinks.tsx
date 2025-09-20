@@ -97,29 +97,19 @@ const SharePollLinks: React.FC<SharePollLinksProps> = ({
 
     setIsSendingEmails(true);
     try {
-      // Initialize EmailJS (you'll need to set these up in your EmailJS account)
-      emailjs.init("YOUR_PUBLIC_KEY"); // Replace with actual EmailJS public key
-
-      const templateParams = {
-        destination,
-        poll_url: pollUrl,
-        organizer_email: organizerEmail,
-        to_emails: memberEmails.join(','),
-      };
-
-      await emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams);
-      
-      setEmailsSent(true);
+      // For now, just show the share link since EmailJS is not configured
       toast({
-        title: "Emails Sent!",
-        description: `Poll invitations sent to ${memberEmails.length} members`,
+        title: "Share Link Ready!",
+        description: "Copy the poll link above and share it with your group members via your preferred messaging app.",
+        duration: 5000,
       });
+      setEmailsSent(true);
       onEmailsSent?.(true);
     } catch (error) {
-      console.error('Error sending emails:', error);
+      console.error('Error:', error);
       toast({
-        title: "Email Error",
-        description: "Failed to send emails. Please share the link manually.",
+        title: "Error",
+        description: "Please share the link manually using the options above.",
         variant: "destructive",
       });
       onEmailsSent?.(false);
@@ -233,7 +223,7 @@ Your responses will help us create the ideal itinerary for our group. Thanks! âœ
                   className="flex items-center space-x-2"
                 >
                   <Mail className="w-4 h-4" />
-                  <span>{isSendingEmails ? "Sending..." : "Send Email Invites"}</span>
+                  <span>{isSendingEmails ? "Processing..." : "Get Share Instructions"}</span>
                 </Button>
               )}
             </div>
