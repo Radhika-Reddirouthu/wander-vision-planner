@@ -4,10 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Users, Vote, CheckCircle, Clock, RefreshCw, Share2 } from "lucide-react";
+import { Loader2, Users, Vote, CheckCircle, Clock, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import SharePollLinks from "./SharePollLinks";
 
 interface PollingViewProps {
   pollId: string;
@@ -24,7 +23,7 @@ const PollingView: React.FC<PollingViewProps> = ({
   const [pollResults, setPollResults] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingItinerary, setIsGeneratingItinerary] = useState(false);
-  const [showShareOptions, setShowShareOptions] = useState(false);
+  
 
   const fetchPollResults = async () => {
     try {
@@ -195,35 +194,11 @@ const PollingView: React.FC<PollingViewProps> = ({
                     <RefreshCw className="w-4 h-4" />
                     <span>Refresh</span>
                   </Button>
-                  <Button
-                    onClick={() => setShowShareOptions(!showShareOptions)}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center space-x-1"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    <span>Share Poll</span>
-                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Share Poll Links */}
-          {showShareOptions && (
-            <SharePollLinks
-              pollId={pollId}
-              pollUrl={poll.google_form_url || `${window.location.origin}/poll/${pollId}`}
-              destination={poll.destination}
-              organizerEmail={poll.organizer_email}
-              memberEmails={pollResults.members?.map((m: any) => m.email).filter((email: string) => email !== poll.organizer_email) || []}
-              onEmailsSent={(success) => {
-                if (success) {
-                  setShowShareOptions(false);
-                }
-              }}
-            />
-          )}
 
           {/* Poll Results */}
           {pollStatus.responseRate > 0 && (

@@ -373,7 +373,7 @@ const TravelInterface = () => {
           .eq('user_id', user.id);
         
         setPollId(pollData.pollId);
-        setCurrentView("poll-success");
+        setCurrentView("polling");
         return;
       }
 
@@ -1472,6 +1472,20 @@ const TravelInterface = () => {
   // Surprise Me View
   if (currentView === "surprise") {
     return <SurpriseView onBackToMain={() => setCurrentView("main")} />;
+  }
+
+  // Polling View
+  if (currentView === "polling" && pollId) {
+    return (
+      <PollingView
+        pollId={pollId}
+        onBackToPlanning={() => setCurrentView("plan")}
+        onProceedToItinerary={(itineraryData: any) => {
+          setItinerary(itineraryData);
+          setCurrentView("itinerary");
+        }}
+      />
+    );
   }
 
   // Poll Success View
