@@ -91,7 +91,7 @@ const handler = async (req: Request): Promise<Response> => {
       `;
 
       const { data, error } = await resend.emails.send({
-        from: Deno.env.get("RESEND_FROM") || "Trip Poll <noreply@lovable.dev>",
+        from: "Trip Poll <onboarding@resend.dev>",
         to: [email],
         subject: emailSubject,
         html: emailHtml
