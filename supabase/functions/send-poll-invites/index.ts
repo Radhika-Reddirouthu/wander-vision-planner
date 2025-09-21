@@ -33,15 +33,21 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Send emails using Supabase's built-in email service
     const emailPromises = memberEmails.map(async (email) => {
-      // Create a temporary auth user invitation
+      const isOrganizer = email === organizerEmail;
+      
+      // Create email content based on role
+      const emailData = {
+        poll_id: pollId,
+        destination: destination,
+        organizer_email: organizerEmail,
+        invitation_type: 'group_poll',
+        role: isOrganizer ? 'organizer' : 'member'
+      };
+
+      // Create a temporary auth user invitation with custom email template
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
         redirectTo: pollUrl,
-        data: {
-          poll_id: pollId,
-          destination: destination,
-          organizer_email: organizerEmail,
-          invitation_type: 'group_poll'
-        }
+        data: emailData
       });
 
       if (error) {

@@ -56,46 +56,70 @@ serve(async (req) => {
 
     const pollId = pollData.id
 
-    // Create poll questions based on destination and trip type
+    // Create itinerary-focused poll questions for group planning
     const questions = [
       {
         poll_id: pollId,
-        question_text: "What type of accommodation do you prefer?",
+        question_text: "What time would you prefer to start daily activities?",
+        question_type: "single_choice",
+        category: "schedule",
+        options: ["Early Bird (6-8 AM)", "Morning (8-10 AM)", "Late Morning (10 AM-12 PM)", "Afternoon (12-2 PM)", "Flexible timing"],
+        allow_public_access: true
+      },
+      {
+        poll_id: pollId,
+        question_text: "How many hours per day do you want to spend on sightseeing/activities?",
+        question_type: "single_choice",
+        category: "pace",
+        options: ["Light (2-4 hours)", "Moderate (4-6 hours)", "Active (6-8 hours)", "Intensive (8+ hours)", "Very flexible"],
+        allow_public_access: true
+      },
+      {
+        poll_id: pollId,
+        question_text: "Which types of attractions interest you most? (Select multiple)",
+        question_type: "multiple_choice",
+        category: "attractions",
+        options: ["Historical Sites", "Religious Places", "Museums", "Local Markets", "Nature Spots", "Adventure Activities", "Cultural Experiences", "Photo Spots"],
+        allow_public_access: true
+      },
+      {
+        poll_id: pollId,
+        question_text: "What's your preferred accommodation type?",
         question_type: "single_choice",
         category: "accommodation",
-        options: ["Luxury Hotels", "Mid-range Hotels", "Budget Hotels", "Hostels", "Vacation Rentals", "Guesthouses"],
+        options: ["Luxury Hotels", "Mid-range Hotels", "Budget Hotels", "Hostels", "Vacation Rentals", "Local Homestays"],
         allow_public_access: true
       },
       {
         poll_id: pollId,
-        question_text: "What activities interest you most? (Select multiple)",
-        question_type: "multiple_choice",
-        category: "activities",
-        options: ["Adventure Sports", "Cultural Sites", "Nightlife", "Nature/Wildlife", "Food Tours", "Shopping", "Relaxation/Spa", "Photography"],
-        allow_public_access: true
-      },
-      {
-        poll_id: pollId,
-        question_text: "What's your preferred budget range per person?",
-        question_type: "single_choice",
-        category: "budget",
-        options: ["Budget (Under ₹30k)", "Mid-range (₹30k-₹80k)", "Premium (₹80k-₹1.5L)", "Luxury (Above ₹1.5L)"],
-        allow_public_access: true
-      },
-      {
-        poll_id: pollId,
-        question_text: "Food preferences?",
-        question_type: "multiple_choice",
-        category: "food",
-        options: ["Local Cuisine", "International Food", "Vegetarian Options", "Street Food", "Fine Dining", "Dietary Restrictions"],
-        allow_public_access: true
-      },
-      {
-        poll_id: pollId,
-        question_text: "Transportation preference?",
+        question_text: "How do you prefer to travel between locations?",
         question_type: "single_choice",
         category: "transport",
-        options: ["Private Taxi/Car", "Public Transport", "Rental Car", "Walking/Cycling", "Mix of All"],
+        options: ["Private Car/Taxi", "Public Transport", "Walking when possible", "Rental Vehicle", "Mix of options"],
+        allow_public_access: true
+      },
+      {
+        poll_id: pollId,
+        question_text: "What dining experiences would you like? (Select multiple)",
+        question_type: "multiple_choice",
+        category: "dining",
+        options: ["Local Street Food", "Traditional Restaurants", "Fine Dining", "International Cuisine", "Vegetarian Options", "Food Tours"],
+        allow_public_access: true
+      },
+      {
+        poll_id: pollId,
+        question_text: "How much free time do you want for personal exploration?",
+        question_type: "single_choice",
+        category: "flexibility",
+        options: ["Minimal (Packed schedule)", "Some (1-2 hours daily)", "Moderate (Half day free)", "Plenty (Full day free)", "Maximum flexibility"],
+        allow_public_access: true
+      },
+      {
+        poll_id: pollId,
+        question_text: "Any specific requirements or preferences? (Optional)",
+        question_type: "text",
+        category: "requirements",
+        options: [],
         allow_public_access: true
       }
     ]
@@ -142,8 +166,10 @@ serve(async (req) => {
     console.log(`Shareable poll URL: ${pollUrl}`)
     console.log(`Poll ID: ${pollId}`)
 
-    // Send invitation emails to all group members (excluding organizer)
-    const memberEmailsToInvite = memberEmails.filter(email => email.trim() !== organizerEmail.trim())
+    // Send invitation emails to all group members (including organizer)
+    const memberEmailsToInvite = [...memberEmails, organizerEmail].filter((email, index, array) => 
+      array.indexOf(email.trim()) === index // Remove duplicates
+    )
     
     if (memberEmailsToInvite.length > 0) {
       try {
