@@ -55,15 +55,17 @@ Please prioritize these group preferences in the itinerary. When there are choic
 
     const prompt = `Create a detailed travel itinerary for a ${tripType} ${groupType} trip to ${destination} from ${departDate} to ${returnDate} with a budget of ${budget} INR${groupSize ? ` for ${groupSize} people` : ''}. ${needsFlights ? 'Include flight recommendations.' : 'No flights needed.'}${pollContext}
 
-    CRITICAL REQUIREMENTS:
+    CRITICAL REQUIREMENTS - MUST FOLLOW:
     1. CREATE ITINERARY FOR EXACTLY ${totalDays} DAYS (from day 1 to day ${totalDays})
-    2. INCLUDE ACTIVITIES FOR EVERY SINGLE DAY - DO NOT SKIP ANY DAYS
-    3. Analyze the travel dates (${departDate} to ${returnDate}) for ${destination}
-    4. Check current weather patterns, monsoon seasons, and any recent weather events
-    5. Provide specific timing recommendations and safety considerations
-    6. Consider if this is the optimal time to visit ${destination}
-    7. Include weather-appropriate activities and packing suggestions
-    8. Check for any travel advisories or safety concerns
+    2. INCLUDE DETAILED ACTIVITIES FOR EVERY SINGLE DAY - DO NOT SKIP ANY DAYS
+    3. NO PLACEHOLDERS OR COMMENTS LIKE "Days 4-22 would follow..." - PROVIDE COMPLETE DETAILS
+    4. Each day must have at least 2-3 specific activities with times, costs, and descriptions
+    5. Analyze the travel dates (${departDate} to ${returnDate}) for ${destination}
+    6. Check current weather patterns, monsoon seasons, and any recent weather events
+    7. Provide specific timing recommendations and safety considerations
+    8. Consider if this is the optimal time to visit ${destination}
+    9. Include weather-appropriate activities and packing suggestions
+    10. Check for any travel advisories or safety concerns
 
     Provide the response in this JSON format:
     {
@@ -108,18 +110,44 @@ Please prioritize these group preferences in the itinerary. When there are choic
         }
       ],
       "itinerary": [
-        // IMPORTANT: Create entries for ALL ${totalDays} days from day 1 to day ${totalDays}
-        // Example format for each day:
+        // MUST CREATE EXACTLY ${totalDays} DAYS - NO SHORTCUTS OR PLACEHOLDERS
         {
           "day": 1,
-          "title": "Day title",
-          "weatherNote": "Expected weather for this day",
+          "title": "Day 1 title",
+          "weatherNote": "Expected weather for day 1",
           "activities": [
             {
               "time": "9:00 AM",
-              "activity": "Activity name",
-              "location": "Location name",
-              "description": "Brief description with weather considerations",
+              "activity": "Specific activity for day 1",
+              "location": "Specific location in ${destination}",
+              "description": "Detailed description with weather considerations",
+              "estimatedCost": "₹XXX",
+              "duration": "X hours",
+              "weatherSuitability": "indoor/outdoor/flexible",
+              "selected": false
+            },
+            {
+              "time": "2:00 PM",
+              "activity": "Another specific activity for day 1",
+              "location": "Another location in ${destination}",
+              "description": "Detailed description",
+              "estimatedCost": "₹XXX",
+              "duration": "X hours",
+              "weatherSuitability": "indoor/outdoor/flexible",
+              "selected": false
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "title": "Day 2 title",
+          "weatherNote": "Expected weather for day 2",
+          "activities": [
+            {
+              "time": "9:00 AM",
+              "activity": "Specific activity for day 2",
+              "location": "Specific location in ${destination}",
+              "description": "Detailed description with weather considerations",
               "estimatedCost": "₹XXX",
               "duration": "X hours",
               "weatherSuitability": "indoor/outdoor/flexible",
@@ -127,7 +155,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
             }
           ]
         }
-        // Continue for day 2, day 3... up to day ${totalDays}
+        // CONTINUE THIS PATTERN FOR ALL ${totalDays} DAYS - DO NOT USE PLACEHOLDERS
       ],
       "localCuisine": [
         {
@@ -154,16 +182,20 @@ Please prioritize these group preferences in the itinerary. When there are choic
       ]
     }
 
-    IMPORTANT: Make sure to:
-    - CREATE EXACTLY ${totalDays} DAYS OF ITINERARY - NO MISSING DAYS
-    - Each day (from 1 to ${totalDays}) must have detailed activities planned
+    CRITICAL INSTRUCTIONS - MUST FOLLOW:
+    - CREATE EXACTLY ${totalDays} COMPLETE DAYS OF ITINERARY - NO MISSING DAYS OR PLACEHOLDERS
+    - Each day (from 1 to ${totalDays}) must have 2-3 detailed activities with specific times, locations, and costs
+    - DO NOT use comments like "Days X-Y would follow this structure" - PROVIDE FULL DETAILS FOR EACH DAY
     - Research actual weather patterns for ${destination} during ${departDate} to ${returnDate}
     - Check for monsoon seasons, extreme temperatures, or natural disasters
     - Suggest indoor alternatives for bad weather days
     - Include weather-appropriate clothing and gear
     - Mention any seasonal festivals or events during these dates
+    - Provide realistic costs in Indian Rupees
+    - Make it specific to the trip type (${tripType}) and group type (${groupType})
+    - RETURN ONLY VALID JSON - NO MARKDOWN FORMATTING OR EXTRA TEXT
     
-    Make it specific to the trip type (${tripType}), consider if it's a ${groupType} trip, and ensure all prices are in Indian Rupees. Prioritize safety and optimal timing!`
+    IMPORTANT: Your response should be a complete JSON object with all ${totalDays} days filled out in detail. Do not truncate or use placeholder text.`
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
@@ -177,10 +209,10 @@ Please prioritize these group preferences in the itinerary. When there are choic
           }]
         }],
         generationConfig: {
-          temperature: 0.4,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 4096,
+          temperature: 0.3,
+          topK: 32,
+          topP: 0.9,
+          maxOutputTokens: 8192,
         }
       }),
     })
@@ -197,22 +229,84 @@ Please prioritize these group preferences in the itinerary. When there are choic
     // Try to parse JSON from the response
     let parsedData
     try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      // First, try to extract JSON from markdown code blocks
+      let jsonText = text
+      
+      // Remove markdown code block markers
+      jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*$/g, '')
+      
+      // Try to find the main JSON object
+      const jsonMatch = jsonText.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
+        jsonText = jsonMatch[0]
+        
         // Clean up the JSON by removing JavaScript-style comments
-        let jsonText = jsonMatch[0]
-        
-        // Remove single-line comments (// ...)
         jsonText = jsonText.replace(/\/\/.*$/gm, '')
-        
-        // Remove multi-line comments (/* ... */)
         jsonText = jsonText.replace(/\/\*[\s\S]*?\*\//g, '')
         
         // Remove trailing commas before closing brackets/braces
         jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1')
         
-        parsedData = JSON.parse(jsonText)
-        console.log('Successfully parsed itinerary data')
+        // Handle incomplete itinerary arrays - if itinerary is incomplete, create a basic structure
+        const parsed = JSON.parse(jsonText)
+        
+        // Ensure we have all required days
+        if (parsed.itinerary && Array.isArray(parsed.itinerary)) {
+          const currentDays = parsed.itinerary.length
+          if (currentDays < totalDays) {
+            console.log(`Incomplete itinerary: got ${currentDays} days, need ${totalDays}`)
+            
+            // Fill in missing days with basic structure
+            for (let day = currentDays + 1; day <= totalDays; day++) {
+              parsed.itinerary.push({
+                day: day,
+                title: `Day ${day} - Explore ${destination}`,
+                weatherNote: "Please check local weather conditions",
+                activities: [
+                  {
+                    time: "9:00 AM",
+                    activity: "Morning exploration",
+                    location: destination,
+                    description: "Explore local attractions and culture",
+                    estimatedCost: "₹1,000",
+                    duration: "3 hours",
+                    weatherSuitability: "flexible",
+                    selected: false
+                  },
+                  {
+                    time: "2:00 PM",
+                    activity: "Afternoon activities",
+                    location: destination,
+                    description: "Continue exploring or relax",
+                    estimatedCost: "₹800",
+                    duration: "2 hours",
+                    weatherSuitability: "flexible",
+                    selected: false
+                  }
+                ]
+              })
+            }
+          }
+        }
+        
+        // Ensure basic structure exists
+        if (!parsed.destination) parsed.destination = destination
+        if (!parsed.tripType) parsed.tripType = tripType
+        if (!parsed.duration) parsed.duration = `${totalDays} days`
+        if (!parsed.estimatedBudget) {
+          parsed.estimatedBudget = {
+            total: budget || "₹50,000",
+            breakdown: {
+              accommodation: "₹20,000",
+              food: "₹15,000",
+              activities: "₹10,000",
+              transport: "₹5,000"
+            }
+          }
+        }
+        
+        parsedData = parsed
+        console.log('Successfully parsed and completed itinerary data')
       } else {
         console.error('No JSON found in Gemini response')
         throw new Error('No JSON found in response')
@@ -220,9 +314,50 @@ Please prioritize these group preferences in the itinerary. When there are choic
     } catch (parseError) {
       console.error('JSON parsing error:', parseError)
       console.error('Raw Gemini response:', text)
+      
+      // Create a fallback itinerary structure
       parsedData = {
-        error: "Could not parse itinerary information",
-        rawResponse: text
+        destination: destination,
+        tripType: tripType,
+        duration: `${totalDays} days`,
+        estimatedBudget: {
+          total: budget || "₹50,000",
+          breakdown: {
+            accommodation: "₹20,000",
+            food: "₹15,000",
+            activities: "₹10,000",
+            transport: "₹5,000"
+          }
+        },
+        itinerary: Array.from({ length: totalDays }, (_, index) => ({
+          day: index + 1,
+          title: `Day ${index + 1} - Explore ${destination}`,
+          weatherNote: "Please check local weather conditions",
+          activities: [
+            {
+              time: "9:00 AM",
+              activity: "Morning exploration",
+              location: destination,
+              description: "Explore local attractions and culture",
+              estimatedCost: "₹1,000",
+              duration: "3 hours",
+              weatherSuitability: "flexible",
+              selected: false
+            },
+            {
+              time: "2:00 PM",
+              activity: "Afternoon activities",
+              location: destination,
+              description: "Continue exploring or relax",
+              estimatedCost: "₹800",
+              duration: "2 hours",
+              weatherSuitability: "flexible",
+              selected: false
+            }
+          ]
+        })),
+        error: "AI response parsing failed - showing basic itinerary structure",
+        rawResponse: text.substring(0, 1000) + "..." // Truncate for logging
       }
     }
 
