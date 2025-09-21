@@ -858,34 +858,18 @@ const TravelInterface = () => {
                         <div className="flex items-center space-x-2 mb-4">
                           <Checkbox 
                             id="groupPolling" 
-                            checked={enableGroupPolling}
-                            onCheckedChange={(checked) => setEnableGroupPolling(checked === true)}
+                            checked={false}
+                            disabled={true}
                           />
-                          <Label htmlFor="groupPolling" className="text-lg font-semibold flex items-center space-x-2">
+                          <Label htmlFor="groupPolling" className="text-lg font-semibold flex items-center space-x-2 opacity-60">
                             <Users className="w-5 h-5" />
-                            <span>Enable Group Polling</span>
+                            <span>Enable Group Polling (coming soon)</span>
                           </Label>
                         </div>
-                        {enableGroupPolling && (
-                          <div className="p-4 bg-accent/20 rounded-lg border">
-                            <p className="text-sm text-muted-foreground mb-3">
-                              🗳️ Create a group poll to let everyone vote on preferences for accommodation, activities, food, and transport. The itinerary will be customized based on majority preferences.
-                            </p>
-                            <div className="space-y-3">
-                              <div className="flex items-center space-x-2 p-3 bg-primary/10 rounded-lg">
-                                <Mail className="w-5 h-5 text-primary" />
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium text-primary">Poll organizer: {user?.email}</p>
-                                  <p className="text-xs text-muted-foreground">Poll will be shared via shareable links with optional email invites</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
 
-                      {/* Group Member Emails - Only show when polling is enabled */}
-                      {enableGroupPolling && (
+                      {/* Group Member Emails - Coming soon feature */}
+                      {false && (
                         <div>
                           <Label className="text-lg font-semibold mb-4 block">
                             Group Member Email Addresses (for voting)
@@ -919,21 +903,17 @@ const TravelInterface = () => {
 
                   <Button 
                     onClick={handleCreateItinerary}
-                    disabled={!destination || !tripType || !groupType || !departDate || !returnDate || !budget || isLoadingItinerary || (groupType === "group" && enableGroupPolling && emails.filter(email => email.trim()).length === 0)}
+                    disabled={!destination || !tripType || !groupType || !departDate || !returnDate || !budget || isLoadingItinerary}
                     className="w-full bg-gradient-ocean text-white text-lg py-6 hover:scale-105 transition-all duration-300"
                   >
                     {isLoadingItinerary ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                        {enableGroupPolling && groupType === "group" ? "Setting up group voting..." : "Crafting your perfect adventure..."}
+                        Crafting your perfect adventure...
                       </>
                     ) : (
                       <>
-                        {enableGroupPolling && groupType === "group" ? (
-                          "🗳️ Create Group Poll & Itinerary"
-                        ) : (
-                          "🚀 Create My Perfect Itinerary"
-                        )}
+                        🚀 Create My Perfect Itinerary
                       </>
                     )}
                   </Button>
