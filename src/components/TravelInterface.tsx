@@ -71,6 +71,9 @@ const TravelInterface = () => {
   const [pollResults, setPollResults] = useState<any>(null);
   const [pollData, setPollData] = useState<any>(null); // Store poll creation response
   const [isLoadingUserData, setIsLoadingUserData] = useState(true);
+  const [sourceLocation, setSourceLocation] = useState("");
+  const [flightSuggestions, setFlightSuggestions] = useState<any>(null);
+  const [isLoadingFlights, setIsLoadingFlights] = useState(false);
 
   // Load user's saved trip data and check for active polls on component mount
   useEffect(() => {
@@ -100,6 +103,7 @@ const TravelInterface = () => {
           setDestination(savedData.destination || "");
           setBudget(savedData.budget || "");
           setNeedsFlights(savedData.needsFlights || false);
+          setSourceLocation(savedData.sourceLocation || "");
           setEnableGroupPolling(savedData.enableGroupPolling || false);
           setEmails(savedData.emails || [""]);
           
@@ -146,6 +150,7 @@ const TravelInterface = () => {
         returnDate: returnDate?.toISOString(),
         budget,
         needsFlights,
+        sourceLocation,
         enableGroupPolling,
         emails
       };
@@ -168,7 +173,7 @@ const TravelInterface = () => {
 
     const timeoutId = setTimeout(saveTripData, 1000); // Debounce saves
     return () => clearTimeout(timeoutId);
-  }, [user, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, enableGroupPolling, emails, currentView, isLoadingUserData]);
+  }, [user, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, sourceLocation, enableGroupPolling, emails, currentView, isLoadingUserData]);
 
   const addEmailField = () => {
     setEmails([...emails, ""]);
@@ -276,6 +281,8 @@ const TravelInterface = () => {
     setReturnDate(undefined);
     setBudget("");
     setNeedsFlights(false);
+    setSourceLocation("");
+    setFlightSuggestions(null);
     setEnableGroupPolling(false);
     setEmails([""]);
     setDestinationInfo(null);
@@ -744,27 +751,161 @@ const TravelInterface = () => {
                     </div>
                   </div>
 
-                  {/* Flight Booking */}
-                  <div>
-                    <div className="flex items-center space-x-2 mb-4">
-                      <Checkbox 
-                        id="flights" 
-                        checked={needsFlights}
-                        onCheckedChange={(checked) => setNeedsFlights(checked === true)}
-                      />
-                      <Label htmlFor="flights" className="text-lg font-semibold flex items-center space-x-2">
-                        <Plane className="w-5 h-5" />
-                        <span>I need help with flight booking</span>
-                      </Label>
-                    </div>
-                    {needsFlights && (
-                      <div className="p-4 bg-accent/20 rounded-lg border">
-                        <p className="text-sm text-muted-foreground">
-                          ✈️ We'll include flight recommendations and booking assistance in your travel plan with the best deals for your dates.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                   {/* Flight Booking */}
+                   <div>
+                     <div className="flex items-center space-x-2 mb-4">
+                       <Checkbox 
+                         id="flights" 
+                         checked={needsFlights}
+                         onCheckedChange={(checked) => {
+                           setNeedsFlights(checked === true);
+                           if (!checked) {
+                             setSourceLocation("");
+                             setFlightSuggestions(null);
+                           }
+                         }}
+                       />
+                       <Label htmlFor="flights" className="text-lg font-semibold flex items-center space-x-2">
+                         <Plane className="w-5 h-5" />
+                         <span>I need help with flight booking</span>
+                       </Label>
+                     </div>
+                     {needsFlights && (
+                       <div className="space-y-4">
+                         <div>
+                           <Label htmlFor="sourceLocation" className="text-sm font-medium mb-2 block">
+                             Where are you flying from?
+                           </Label>
+                           <Input 
+                             id="sourceLocation" 
+                             placeholder="Enter your departure city..." 
+                             value={sourceLocation}
+                             onChange={(e) => setSourceLocation(e.target.value)}
+                             className="text-lg p-4"
+                           />
+                         </div>
+                         
+                         {sourceLocation && destination && departDate && returnDate && (
+                           <Button 
+                             onClick={async () => {
+                               setIsLoadingFlights(true);
+                               try {
+                                 const { data, error } = await supabase.functions.invoke('get-flight-suggestions', {
+                                   body: {
+                                     sourceLocation,
+                                     destination,
+                                     departDate: format(departDate, 'yyyy-MM-dd'),
+                                     returnDate: format(returnDate, 'yyyy-MM-dd'),
+                                     budget,
+                                     groupSize: groupType === "group" ? groupSize : "1"
+                                   }
+                                 });
+                                 
+                                 if (error) throw error;
+                                 setFlightSuggestions(data);
+                               } catch (error) {
+                                 console.error('Error getting flight suggestions:', error);
+                                 alert('Error getting flight suggestions. Please try again.');
+                               } finally {
+                                 setIsLoadingFlights(false);
+                               }
+                             }}
+                             disabled={isLoadingFlights}
+                             variant="outline"
+                             className="w-full"
+                           >
+                             {isLoadingFlights ? (
+                               <>
+                                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                 Getting flight suggestions...
+                               </>
+                             ) : (
+                               <>
+                                 <Plane className="w-4 h-4 mr-2" />
+                                 Get Flight Suggestions
+                               </>
+                             )}
+                           </Button>
+                         )}
+
+                         {flightSuggestions && (
+                           <div className="mt-6 space-y-4">
+                             <h4 className="text-lg font-semibold">Flight Suggestions</h4>
+                             
+                             {/* Airport Information */}
+                             <div className="grid md:grid-cols-2 gap-4 p-4 bg-accent/10 rounded-lg">
+                               <div>
+                                 <div className="font-medium">From: {flightSuggestions.sourceAirport?.name}</div>
+                                 <div className="text-sm text-muted-foreground">
+                                   {flightSuggestions.sourceAirport?.code} • {flightSuggestions.sourceAirport?.distanceFromSource}
+                                 </div>
+                               </div>
+                               <div>
+                                 <div className="font-medium">To: {flightSuggestions.destinationAirport?.name}</div>
+                                 <div className="text-sm text-muted-foreground">
+                                   {flightSuggestions.destinationAirport?.code}
+                                 </div>
+                               </div>
+                             </div>
+
+                             {/* Flight Options */}
+                             <div className="space-y-3">
+                               {flightSuggestions.flightOptions?.map((flight: any, index: number) => (
+                                 <div key={index} className="p-4 border rounded-lg hover:bg-accent/5 transition-colors">
+                                   <div className="flex justify-between items-start mb-2">
+                                     <div>
+                                       <div className="font-semibold text-lg">{flight.airline}</div>
+                                       <div className="text-sm text-muted-foreground">{flight.flightNumber} • {flight.class}</div>
+                                     </div>
+                                     <div className="text-right">
+                                       <div className="text-xl font-bold text-primary">{flight.price}</div>
+                                       <div className="text-sm text-muted-foreground">{flight.availability}</div>
+                                     </div>
+                                   </div>
+                                   <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                     <div>
+                                       <div className="font-medium">Route</div>
+                                       <div className="text-muted-foreground">{flight.route}</div>
+                                     </div>
+                                     <div>
+                                       <div className="font-medium">Duration</div>
+                                       <div className="text-muted-foreground">{flight.duration} • {flight.stops}</div>
+                                     </div>
+                                     <div>
+                                       <div className="font-medium">Times</div>
+                                       <div className="text-muted-foreground">{flight.departureTime} - {flight.arrivalTime}</div>
+                                     </div>
+                                   </div>
+                                   {flight.bookingRecommendation && (
+                                     <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded text-sm">
+                                       <strong>Why choose this:</strong> {flight.bookingRecommendation}
+                                     </div>
+                                   )}
+                                 </div>
+                               ))}
+                             </div>
+
+                             {/* Booking Tips */}
+                             {flightSuggestions.bookingTips && (
+                               <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                                 <h5 className="font-semibold mb-2 text-green-800 dark:text-green-200">💡 Booking Tips</h5>
+                                 <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                                   {flightSuggestions.bookingTips.map((tip: string, index: number) => (
+                                     <li key={index}>• {tip}</li>
+                                   ))}
+                                 </ul>
+                                 {flightSuggestions.bestTimeToBook && (
+                                   <div className="mt-2 text-sm text-green-700 dark:text-green-300">
+                                     <strong>Best booking time:</strong> {flightSuggestions.bestTimeToBook}
+                                   </div>
+                                 )}
+                               </div>
+                             )}
+                           </div>
+                         )}
+                       </div>
+                     )}
+                   </div>
 
                   {/* Group Trip Features */}
                   {groupType === "group" && (
