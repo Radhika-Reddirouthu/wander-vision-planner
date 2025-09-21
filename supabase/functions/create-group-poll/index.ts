@@ -167,6 +167,7 @@ serve(async (req) => {
     console.log(`Poll ID: ${pollId}`)
 
     // Send invitation emails to all group members (including organizer)
+    // Make sure organizer is included in the list to receive poll questions
     const memberEmailsToInvite = [...memberEmails, organizerEmail].filter((email, index, array) => 
       array.indexOf(email.trim()) === index // Remove duplicates
     )

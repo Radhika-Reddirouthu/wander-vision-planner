@@ -138,6 +138,17 @@ const PollResponse = () => {
         console.error('Error updating member status:', memberError);
       }
 
+      // Trigger poll results calculation
+      try {
+        await supabase.functions.invoke('get-poll-results', {
+          body: { pollId }
+        });
+        console.log('Poll results updated successfully');
+      } catch (resultError) {
+        console.error('Error updating poll results:', resultError);
+        // Don't fail the submission if results calculation fails
+      }
+
       toast({
         title: "Response Submitted!",
         description: "Thank you for participating in the group trip poll.",
@@ -166,17 +177,29 @@ const PollResponse = () => {
     switch (question.question_type) {
       case 'multiple_choice':
         return (
-          <RadioGroup
-            value={responses[question.id] || ""}
-            onValueChange={(value) => handleResponseChange(question.id, value)}
-          >
+          <div className="space-y-2">
             {options.map((option: string, index: number) => (
               <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem value={option} id={`${question.id}-${index}`} />
+                <Checkbox
+                  id={`${question.id}-${index}`}
+                  checked={responses[question.id]?.includes(option) || false}
+                  onCheckedChange={(checked) => {
+                    const currentResponse = responses[question.id] || "";
+                    const currentOptions = currentResponse ? currentResponse.split(",") : [];
+                    
+                    if (checked) {
+                      const newOptions = [...currentOptions, option];
+                      handleResponseChange(question.id, newOptions.join(","));
+                    } else {
+                      const newOptions = currentOptions.filter(opt => opt !== option);
+                      handleResponseChange(question.id, newOptions.join(","));
+                    }
+                  }}
+                />
                 <Label htmlFor={`${question.id}-${index}`}>{option}</Label>
               </div>
             ))}
-          </RadioGroup>
+          </div>
         );
       
       case 'checkbox':
@@ -204,6 +227,21 @@ const PollResponse = () => {
               </div>
             ))}
           </div>
+        );
+      
+      case 'single_choice':
+        return (
+          <RadioGroup
+            value={responses[question.id] || ""}
+            onValueChange={(value) => handleResponseChange(question.id, value)}
+          >
+            {options.map((option: string, index: number) => (
+              <div key={index} className="flex items-center space-x-2">
+                <RadioGroupItem value={option} id={`${question.id}-${index}`} />
+                <Label htmlFor={`${question.id}-${index}`}>{option}</Label>
+              </div>
+            ))}
+          </RadioGroup>
         );
       
       case 'text':
