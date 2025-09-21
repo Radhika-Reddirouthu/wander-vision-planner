@@ -54,20 +54,23 @@ const PollResponse = () => {
       // Fetch public poll details (without sensitive data like organizer_email)
       const { data: pollData, error: pollError } = await supabase
         .rpc('get_public_poll_info', { poll_uuid: pollId })
-        .single();
 
-      if (pollError) throw pollError;
+      if (pollError || !pollData || pollData.length === 0) {
+        throw new Error('Poll not found or not accessible');
+      }
 
-      // Fetch poll questions
+      // Fetch poll questions (only public access questions)
       const { data: questionsData, error: questionsError } = await supabase
         .from('poll_questions')
         .select('*')
         .eq('poll_id', pollId)
-        .order('category');
+        .eq('allow_public_access', true)
+        .order('created_at');
 
       if (questionsError) throw questionsError;
 
-      setPoll(pollData);
+      // RPC returns array, take first item
+      setPoll(pollData[0]);
       setQuestions(questionsData || []);
     } catch (error: any) {
       console.error('Error fetching poll data:', error);
@@ -277,9 +280,7 @@ const PollResponse = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <Users className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">
-                  {poll.organizer_email ? `Organized by ${poll.organizer_email}` : 'Group Poll'}
-                </span>
+                <span className="text-sm">Group Trip Poll</span>
               </div>
             </div>
             
