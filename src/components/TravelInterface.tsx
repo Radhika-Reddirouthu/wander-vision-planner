@@ -211,7 +211,20 @@ const TravelInterface = () => {
       setCurrentView('itinerary');
     } catch (error) {
       console.error('Error creating itinerary:', error);
-      alert('Error creating itinerary. Please try again.');
+      
+      // Provide specific error messages based on error type
+      let errorMessage = 'Error creating itinerary. Please try again.';
+      const errorString = error.message || JSON.stringify(error);
+      
+      if (errorString.includes('quota') || errorString.includes('rate limit')) {
+        errorMessage = 'API quota exceeded. Please try again later or contact support to upgrade your plan.';
+      } else if (errorString.includes('network') || errorString.includes('timeout')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (errorString.includes('invalid') || errorString.includes('validation')) {
+        errorMessage = 'Please check your travel details and try again.';
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsLoadingItinerary(false);
     }
@@ -407,7 +420,20 @@ const TravelInterface = () => {
       setCurrentView('itinerary');
     } catch (error) {
       console.error('Error creating itinerary:', error);
-      alert('Error creating itinerary. Please try again.');
+      
+      // Provide specific error messages based on error type
+      let errorMessage = 'Error creating itinerary. Please try again.';
+      const errorString = error.message || JSON.stringify(error);
+      
+      if (errorString.includes('quota') || errorString.includes('rate limit')) {
+        errorMessage = 'API quota exceeded. Please try again later or contact support to upgrade your plan.';
+      } else if (errorString.includes('network') || errorString.includes('timeout')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (errorString.includes('invalid') || errorString.includes('validation')) {
+        errorMessage = 'Please check your travel details and try again.';
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsLoadingItinerary(false);
     }
