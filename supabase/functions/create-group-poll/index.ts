@@ -62,7 +62,7 @@ serve(async (req) => {
         poll_id: pollId,
         question_text: "What time would you prefer to start daily activities?",
         question_type: "single_choice",
-        category: "schedule",
+        category: "preferences",
         options: ["Early Bird (6-8 AM)", "Morning (8-10 AM)", "Late Morning (10 AM-12 PM)", "Afternoon (12-2 PM)", "Flexible timing"],
         allow_public_access: true
       },
@@ -70,7 +70,7 @@ serve(async (req) => {
         poll_id: pollId,
         question_text: "How many hours per day do you want to spend on sightseeing/activities?",
         question_type: "single_choice",
-        category: "pace",
+        category: "activities",
         options: ["Light (2-4 hours)", "Moderate (4-6 hours)", "Active (6-8 hours)", "Intensive (8+ hours)", "Very flexible"],
         allow_public_access: true
       },
@@ -78,7 +78,7 @@ serve(async (req) => {
         poll_id: pollId,
         question_text: "Which types of attractions interest you most? (Select multiple)",
         question_type: "multiple_choice",
-        category: "attractions",
+        category: "activities",
         options: ["Historical Sites", "Religious Places", "Museums", "Local Markets", "Nature Spots", "Adventure Activities", "Cultural Experiences", "Photo Spots"],
         allow_public_access: true
       },
@@ -102,7 +102,7 @@ serve(async (req) => {
         poll_id: pollId,
         question_text: "What dining experiences would you like? (Select multiple)",
         question_type: "multiple_choice",
-        category: "dining",
+        category: "food",
         options: ["Local Street Food", "Traditional Restaurants", "Fine Dining", "International Cuisine", "Vegetarian Options", "Food Tours"],
         allow_public_access: true
       },
@@ -110,7 +110,7 @@ serve(async (req) => {
         poll_id: pollId,
         question_text: "How much free time do you want for personal exploration?",
         question_type: "single_choice",
-        category: "flexibility",
+        category: "preferences",
         options: ["Minimal (Packed schedule)", "Some (1-2 hours daily)", "Moderate (Half day free)", "Plenty (Full day free)", "Maximum flexibility"],
         allow_public_access: true
       },
@@ -118,7 +118,7 @@ serve(async (req) => {
         poll_id: pollId,
         question_text: "Any specific requirements or preferences? (Optional)",
         question_type: "text",
-        category: "requirements",
+        category: "preferences",
         options: [],
         allow_public_access: true
       }

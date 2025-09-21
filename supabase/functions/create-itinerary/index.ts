@@ -180,13 +180,26 @@ Please prioritize these group preferences in the itinerary. When there are choic
     }
 
     const text = data.candidates[0].content.parts[0].text
+    console.log('Raw Gemini response:', text)
     
     // Try to parse JSON from the response
     let parsedData
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
-        parsedData = JSON.parse(jsonMatch[0])
+        // Clean up the JSON by removing JavaScript-style comments
+        let jsonText = jsonMatch[0]
+        
+        // Remove single-line comments (// ...)
+        jsonText = jsonText.replace(/\/\/.*$/gm, '')
+        
+        // Remove multi-line comments (/* ... */)
+        jsonText = jsonText.replace(/\/\*[\s\S]*?\*\//g, '')
+        
+        // Remove trailing commas before closing brackets/braces
+        jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1')
+        
+        parsedData = JSON.parse(jsonText)
         console.log('Successfully parsed itinerary data')
       } else {
         console.error('No JSON found in Gemini response')
