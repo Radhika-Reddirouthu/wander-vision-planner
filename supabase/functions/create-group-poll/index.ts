@@ -137,16 +137,46 @@ serve(async (req) => {
     console.log(`Shareable poll URL: ${pollUrl}`)
     console.log(`Poll ID: ${pollId}`)
 
+    // Send invitation emails to all group members (excluding organizer)
+    const memberEmailsToInvite = memberEmails.filter(email => email.trim() !== organizerEmail.trim())
+    
+    if (memberEmailsToInvite.length > 0) {
+      try {
+        console.log('Sending poll invites to:', memberEmailsToInvite)
+        
+        const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-poll-invites', {
+          body: {
+            pollId,
+            destination,
+            organizerEmail,
+            memberEmails: memberEmailsToInvite,
+            formUrl: pollUrl
+          }
+        })
+
+        if (emailError) {
+          console.error('Error sending poll invites:', emailError)
+          // Don't fail the entire request if email sending fails
+        } else {
+          console.log('Poll invites sent successfully:', emailResult)
+        }
+      } catch (emailError) {
+        console.error('Failed to send poll invites:', emailError)
+        // Continue with success response even if emails failed
+      }
+    }
+
     return new Response(JSON.stringify({ 
       pollId,
       pollUrl,
       formUrl: pollUrl, // for backward compatibility
       memberCount: allMembers.length,
-      message: 'Poll created successfully. Share the poll URL with group members.',
+      emailsSent: memberEmailsToInvite.length,
+      message: `Poll created successfully! Invitation emails sent to ${memberEmailsToInvite.length} group members.`,
       shareInstructions: {
         pollUrl,
         destination,
-        memberEmails: memberEmails.filter(email => email.trim() !== organizerEmail.trim())
+        memberEmails: memberEmailsToInvite
       }
     }), {
       headers: { 
