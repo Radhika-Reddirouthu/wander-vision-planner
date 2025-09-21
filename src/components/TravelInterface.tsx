@@ -885,103 +885,103 @@ const TravelInterface = () => {
                                ))}
                              </div>
 
-                             {/* Booking Tips */}
-                             {flightSuggestions.bookingTips && (
-                               <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                                 <h5 className="font-semibold mb-2 text-green-800 dark:text-green-200">💡 Booking Tips</h5>
-                                 <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
-                                   {flightSuggestions.bookingTips.map((tip: string, index: number) => (
-                                     <li key={index}>• {tip}</li>
-                                   ))}
-                                 </ul>
-                                 {flightSuggestions.bestTimeToBook && (
-                                   <div className="mt-2 text-sm text-green-700 dark:text-green-300">
-                                     <strong>Best booking time:</strong> {flightSuggestions.bestTimeToBook}
-                                   </div>
-                                 )}
-                               </div>
-                             )}
-                           </div>
-                         )}
-                       </div>
-                     )}
-                   </div>
-
-                  {/* Group Trip Features */}
-                  {groupType === "group" && (
-                    <div className="space-y-6">
-                      {/* Group Polling Option */}
-                      <div>
-                        <div className="flex items-center space-x-2 mb-4">
-                          <Checkbox 
-                            id="groupPolling" 
-                            checked={false}
-                            disabled={true}
-                          />
-                          <Label htmlFor="groupPolling" className="text-lg font-semibold flex items-center space-x-2 opacity-60">
-                            <Users className="w-5 h-5" />
-                            <span>Enable Group Polling (coming soon)</span>
-                          </Label>
-                        </div>
-                      </div>
-
-                      {/* Group Member Emails - Coming soon feature */}
-                      {false && (
-                        <div>
-                          <Label className="text-lg font-semibold mb-4 block">
-                            Group Member Email Addresses (for voting)
-                          </Label>
-                          <div className="space-y-3">
-                            {emails.map((email, index) => (
-                              <div key={index} className="flex items-center space-x-2">
-                                <Mail className="w-5 h-5 text-muted-foreground" />
-                                <Input
-                                  placeholder={`Group member email ${index + 1}`}
-                                  value={email}
-                                  onChange={(e) => updateEmail(index, e.target.value)}
-                                  className="flex-1"
-                                  type="email"
-                                />
-                              </div>
-                            ))}
-                            <Button 
-                              onClick={addEmailField}
-                              variant="outline"
-                              className="w-full"
-                            >
-                              <Plus className="w-4 h-4 mr-2" />
-                              Add Another Member
-                            </Button>
-                          </div>
+                              {/* Booking Tips */}
+                              {flightSuggestions.bookingTips && (
+                                <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                                  <h5 className="font-semibold mb-2 text-green-800 dark:text-green-200">💡 Booking Tips</h5>
+                                  <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                                    {flightSuggestions.bookingTips.map((tip: string, index: number) => (
+                                      <li key={index}>• {tip}</li>
+                                    ))}
+                                  </ul>
+                                  {flightSuggestions.bestTimeToBook && (
+                                    <div className="mt-2 text-sm text-green-700 dark:text-green-300">
+                                      <strong>Best booking time:</strong> {flightSuggestions.bestTimeToBook}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
 
-                  <Button 
-                    onClick={handleCreateItinerary}
-                    disabled={!destination || !tripType || !groupType || !departDate || !returnDate || !budget || isLoadingItinerary}
-                    className="w-full bg-gradient-ocean text-white text-lg py-6 hover:scale-105 transition-all duration-300"
-                  >
-                    {isLoadingItinerary ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                        Crafting your perfect adventure...
-                      </>
-                    ) : (
-                      <>
-                        🚀 Create My Perfect Itinerary
-                      </>
-                    )}
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-        <ChatBot />
-      </div>
-    );
+                   {/* Group Trip Features */}
+                   {groupType === "group" && (
+                     <div className="space-y-6">
+                       {/* Group Polling Option */}
+                       <div>
+                         <div className="flex items-center space-x-2 mb-4">
+                           <Checkbox 
+                             id="groupPolling" 
+                             checked={false}
+                             disabled={true}
+                           />
+                           <Label htmlFor="groupPolling" className="text-lg font-semibold flex items-center space-x-2 opacity-60">
+                             <Users className="w-5 h-5" />
+                             <span>Enable Group Polling (coming soon)</span>
+                           </Label>
+                         </div>
+                       </div>
+
+                       {/* Group Member Emails - Coming soon feature */}
+                       {false && (
+                         <div>
+                           <Label className="text-lg font-semibold mb-4 block">
+                             Group Member Email Addresses (for voting)
+                           </Label>
+                           <div className="space-y-3">
+                             {emails.map((email, index) => (
+                               <div key={index} className="flex items-center space-x-2">
+                                 <Mail className="w-5 h-5 text-muted-foreground" />
+                                 <Input
+                                   placeholder={`Group member email ${index + 1}`}
+                                   value={email}
+                                   onChange={(e) => updateEmail(index, e.target.value)}
+                                   className="flex-1"
+                                   type="email"
+                                 />
+                               </div>
+                             ))}
+                             <Button 
+                               onClick={addEmailField}
+                               variant="outline"
+                               className="w-full"
+                             >
+                               <Plus className="w-4 h-4 mr-2" />
+                               Add Another Member
+                             </Button>
+                           </div>
+                         </div>
+                       )}
+                     </div>
+                   )}
+
+                   <Button 
+                     onClick={handleCreateItinerary}
+                     disabled={!destination || !tripType || !groupType || !departDate || !returnDate || !budget || isLoadingItinerary}
+                     className="w-full bg-gradient-ocean text-white text-lg py-6 hover:scale-105 transition-all duration-300"
+                   >
+                     {isLoadingItinerary ? (
+                       <>
+                         <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                         Crafting your perfect adventure...
+                       </>
+                     ) : (
+                       <>
+                         🚀 Create My Perfect Itinerary
+                       </>
+                     )}
+                   </Button>
+                 </>
+               )}
+             </CardContent>
+           </Card>
+         </div>
+         <ChatBot />
+       </div>
+     );
   }
 
   // Itinerary Display View
