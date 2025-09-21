@@ -125,7 +125,7 @@ serve(async (req) => {
     }
 
     // Create shareable poll URL (accessible without authentication)
-    const pollUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/poll-form?pollId=${pollId}`
+    const pollUrl = `https://lovable.dev/poll/${pollId}`
     
     // Update poll with form URL
     await supabase
@@ -149,8 +149,7 @@ serve(async (req) => {
             pollId,
             destination,
             organizerEmail,
-            memberEmails: memberEmailsToInvite,
-            formUrl: pollUrl
+            memberEmails: memberEmailsToInvite
           }
         })
 

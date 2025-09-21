@@ -4,6 +4,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
+import PollResponse from "./pages/PollResponse";
 import NotFound from "./pages/NotFound";
 
 const App = () => (
@@ -13,6 +14,7 @@ const App = () => (
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/poll/:pollId" element={<PollResponse />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
