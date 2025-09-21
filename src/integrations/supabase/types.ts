@@ -304,6 +304,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_public_poll_info: {
+        Args: { poll_uuid: string }
+        Returns: {
+          budget: string
+          created_at: string
+          depart_date: string
+          destination: string
+          group_type: string
+          id: string
+          return_date: string
+          trip_type: string
+        }[]
+      }
       is_poll_member_or_organizer: {
         Args: { poll_uuid: string }
         Returns: boolean

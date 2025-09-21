@@ -22,10 +22,13 @@ interface PollQuestion {
 interface Poll {
   id: string;
   destination: string;
+  trip_type: string;
+  group_type: string;
   depart_date: string;
   return_date: string;
   budget: string;
-  organizer_email: string;
+  organizer_email?: string; // Optional for public access
+  created_at: string;
 }
 
 const PollResponse = () => {
@@ -48,11 +51,9 @@ const PollResponse = () => {
 
   const fetchPollData = async () => {
     try {
-      // Fetch poll details
+      // Fetch public poll details (without sensitive data like organizer_email)
       const { data: pollData, error: pollError } = await supabase
-        .from('group_polls')
-        .select('*')
-        .eq('id', pollId)
+        .rpc('get_public_poll_info', { poll_uuid: pollId })
         .single();
 
       if (pollError) throw pollError;
@@ -276,7 +277,9 @@ const PollResponse = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <Users className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">Organized by {poll.organizer_email}</span>
+                <span className="text-sm">
+                  {poll.organizer_email ? `Organized by ${poll.organizer_email}` : 'Group Poll'}
+                </span>
               </div>
             </div>
             
