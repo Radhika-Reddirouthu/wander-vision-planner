@@ -48,15 +48,22 @@ IMPORTANT - Group Preferences from Poll Results:
 Please prioritize these group preferences in the itinerary. When there are choices, favor options that match the majority preferences above.`
     }
 
+    // Calculate the total number of days
+    const startDate = new Date(departDate);
+    const endDate = new Date(returnDate);
+    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
     const prompt = `Create a detailed travel itinerary for a ${tripType} ${groupType} trip to ${destination} from ${departDate} to ${returnDate} with a budget of ${budget} INR${groupSize ? ` for ${groupSize} people` : ''}. ${needsFlights ? 'Include flight recommendations.' : 'No flights needed.'}${pollContext}
 
     CRITICAL REQUIREMENTS:
-    1. Analyze the travel dates (${departDate} to ${returnDate}) for ${destination}
-    2. Check current weather patterns, monsoon seasons, and any recent weather events
-    3. Provide specific timing recommendations and safety considerations
-    4. Consider if this is the optimal time to visit ${destination}
-    5. Include weather-appropriate activities and packing suggestions
-    6. Check for any travel advisories or safety concerns
+    1. CREATE ITINERARY FOR EXACTLY ${totalDays} DAYS (from day 1 to day ${totalDays})
+    2. INCLUDE ACTIVITIES FOR EVERY SINGLE DAY - DO NOT SKIP ANY DAYS
+    3. Analyze the travel dates (${departDate} to ${returnDate}) for ${destination}
+    4. Check current weather patterns, monsoon seasons, and any recent weather events
+    5. Provide specific timing recommendations and safety considerations
+    6. Consider if this is the optimal time to visit ${destination}
+    7. Include weather-appropriate activities and packing suggestions
+    8. Check for any travel advisories or safety concerns
 
     Provide the response in this JSON format:
     {
@@ -101,6 +108,8 @@ Please prioritize these group preferences in the itinerary. When there are choic
         }
       ],
       "itinerary": [
+        // IMPORTANT: Create entries for ALL ${totalDays} days from day 1 to day ${totalDays}
+        // Example format for each day:
         {
           "day": 1,
           "title": "Day title",
@@ -118,6 +127,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
             }
           ]
         }
+        // Continue for day 2, day 3... up to day ${totalDays}
       ],
       "localCuisine": [
         {
@@ -145,6 +155,8 @@ Please prioritize these group preferences in the itinerary. When there are choic
     }
 
     IMPORTANT: Make sure to:
+    - CREATE EXACTLY ${totalDays} DAYS OF ITINERARY - NO MISSING DAYS
+    - Each day (from 1 to ${totalDays}) must have detailed activities planned
     - Research actual weather patterns for ${destination} during ${departDate} to ${returnDate}
     - Check for monsoon seasons, extreme temperatures, or natural disasters
     - Suggest indoor alternatives for bad weather days
