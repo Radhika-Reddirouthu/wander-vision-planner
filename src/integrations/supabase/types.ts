@@ -102,6 +102,7 @@ export type Database = {
       }
       poll_questions: {
         Row: {
+          allow_public_access: boolean | null
           category: string
           created_at: string
           id: string
@@ -111,6 +112,7 @@ export type Database = {
           question_type: string
         }
         Insert: {
+          allow_public_access?: boolean | null
           category: string
           created_at?: string
           id?: string
@@ -120,6 +122,7 @@ export type Database = {
           question_type: string
         }
         Update: {
+          allow_public_access?: boolean | null
           category?: string
           created_at?: string
           id?: string

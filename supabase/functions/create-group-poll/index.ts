@@ -63,35 +63,40 @@ serve(async (req) => {
         question_text: "What type of accommodation do you prefer?",
         question_type: "single_choice",
         category: "accommodation",
-        options: ["Luxury Hotels", "Mid-range Hotels", "Budget Hotels", "Hostels", "Vacation Rentals", "Guesthouses"]
+        options: ["Luxury Hotels", "Mid-range Hotels", "Budget Hotels", "Hostels", "Vacation Rentals", "Guesthouses"],
+        allow_public_access: true
       },
       {
         poll_id: pollId,
         question_text: "What activities interest you most? (Select multiple)",
         question_type: "multiple_choice",
         category: "activities",
-        options: ["Adventure Sports", "Cultural Sites", "Nightlife", "Nature/Wildlife", "Food Tours", "Shopping", "Relaxation/Spa", "Photography"]
+        options: ["Adventure Sports", "Cultural Sites", "Nightlife", "Nature/Wildlife", "Food Tours", "Shopping", "Relaxation/Spa", "Photography"],
+        allow_public_access: true
       },
       {
         poll_id: pollId,
         question_text: "What's your preferred budget range per person?",
         question_type: "single_choice",
         category: "budget",
-        options: ["Budget (Under ₹30k)", "Mid-range (₹30k-₹80k)", "Premium (₹80k-₹1.5L)", "Luxury (Above ₹1.5L)"]
+        options: ["Budget (Under ₹30k)", "Mid-range (₹30k-₹80k)", "Premium (₹80k-₹1.5L)", "Luxury (Above ₹1.5L)"],
+        allow_public_access: true
       },
       {
         poll_id: pollId,
         question_text: "Food preferences?",
         question_type: "multiple_choice",
         category: "food",
-        options: ["Local Cuisine", "International Food", "Vegetarian Options", "Street Food", "Fine Dining", "Dietary Restrictions"]
+        options: ["Local Cuisine", "International Food", "Vegetarian Options", "Street Food", "Fine Dining", "Dietary Restrictions"],
+        allow_public_access: true
       },
       {
         poll_id: pollId,
         question_text: "Transportation preference?",
         question_type: "single_choice",
         category: "transport",
-        options: ["Private Taxi/Car", "Public Transport", "Rental Car", "Walking/Cycling", "Mix of All"]
+        options: ["Private Taxi/Car", "Public Transport", "Rental Car", "Walking/Cycling", "Mix of All"],
+        allow_public_access: true
       }
     ]
 
