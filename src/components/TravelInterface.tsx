@@ -112,7 +112,9 @@ const TravelInterface = () => {
           if (savedData.returnDate) setReturnDate(new Date(savedData.returnDate));
           
           // Set current view based on last step (ensure it matches the union type)
+          // Don't restore 'itinerary' view if there's no itinerary data
           if (profile.last_planning_step && 
+              profile.last_planning_step !== 'itinerary' &&
               ['main', 'plan', 'chat', 'itinerary', 'polling', 'poll-success', 'surprise', 'identify'].includes(profile.last_planning_step)) {
             setCurrentView(profile.last_planning_step as 'main' | 'plan' | 'chat' | 'itinerary' | 'polling' | 'poll-success' | 'surprise' | 'identify');
           } else if (savedData.tripType) {
