@@ -321,10 +321,7 @@ export type Database = {
         Args: { poll_uuid: string }
         Returns: boolean
       }
-      user_can_access_poll: {
-        Args: { poll_uuid: string }
-        Returns: boolean
-      }
+      user_can_access_poll: { Args: { poll_uuid: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
