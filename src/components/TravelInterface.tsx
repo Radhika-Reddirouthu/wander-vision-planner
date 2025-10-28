@@ -74,6 +74,9 @@ const TravelInterface = () => {
   const [sourceLocation, setSourceLocation] = useState("");
   const [flightSuggestions, setFlightSuggestions] = useState<any>(null);
   const [isLoadingFlights, setIsLoadingFlights] = useState(false);
+  const [stayType, setStayType] = useState("");
+  const [specificPlaces, setSpecificPlaces] = useState("");
+  const [selectedHotels, setSelectedHotels] = useState<{[key: number]: number}>({});
 
   // Load user's saved trip data and check for active polls on component mount
   useEffect(() => {
@@ -106,6 +109,8 @@ const TravelInterface = () => {
           setSourceLocation(savedData.sourceLocation || "");
           setEnableGroupPolling(savedData.enableGroupPolling || false);
           setEmails(savedData.emails || [""]);
+          setStayType(savedData.stayType || "");
+          setSpecificPlaces(savedData.specificPlaces || "");
           
           // Restore dates
           if (savedData.departDate) setDepartDate(new Date(savedData.departDate));
@@ -154,7 +159,9 @@ const TravelInterface = () => {
         needsFlights,
         sourceLocation,
         enableGroupPolling,
-        emails
+        emails,
+        stayType,
+        specificPlaces
       };
 
       // Only save if there's meaningful data
@@ -175,7 +182,7 @@ const TravelInterface = () => {
 
     const timeoutId = setTimeout(saveTripData, 1000); // Debounce saves
     return () => clearTimeout(timeoutId);
-  }, [user, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, sourceLocation, enableGroupPolling, emails, currentView, isLoadingUserData]);
+  }, [user, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, sourceLocation, enableGroupPolling, emails, currentView, isLoadingUserData, stayType, specificPlaces]);
 
   const addEmailField = () => {
     setEmails([...emails, ""]);
@@ -199,7 +206,9 @@ const TravelInterface = () => {
           returnDate: returnDate ? format(returnDate, 'yyyy-MM-dd') : '',
           budget,
           needsFlights,
-          pollResults: pollResults
+          pollResults: pollResults,
+          stayType,
+          specificPlaces
         }
       });
       
@@ -291,6 +300,9 @@ const TravelInterface = () => {
     setItinerary(null);
     setPollId(null);
     setPollResults(null);
+    setStayType("");
+    setSpecificPlaces("");
+    setSelectedHotels({});
     // Stay in planning view instead of going to main
     // setCurrentView("main"); - removed this line
 
@@ -382,7 +394,9 @@ const TravelInterface = () => {
           returnDate: format(returnDate, 'yyyy-MM-dd'),
           budget: budget || "₹50,000", // Provide default budget if empty
           needsFlights,
-          pollResults: pollResults // Include poll results if available
+          pollResults: pollResults, // Include poll results if available
+          stayType,
+          specificPlaces
         }
       });
       
@@ -420,23 +434,17 @@ const TravelInterface = () => {
     }
   };
 
-  const toggleActivitySelection = (dayIndex: number, activityIndex: number) => {
-    if (!itinerary) return;
-    
-    const updatedItinerary = { ...itinerary };
-    updatedItinerary.itinerary[dayIndex].activities[activityIndex].selected = 
-      !updatedItinerary.itinerary[dayIndex].activities[activityIndex].selected;
-    setItinerary(updatedItinerary);
+  const handleHotelSelection = (dayIndex: number, hotelIndex: number) => {
+    setSelectedHotels(prev => ({
+      ...prev,
+      [dayIndex]: hotelIndex
+    }));
   };
 
-  const toggleHotelSelection = (hotelIndex: number) => {
-    if (!itinerary) return;
-    
-    const updatedItinerary = { ...itinerary };
-    updatedItinerary.hotels.forEach((hotel: any, index: number) => {
-      hotel.selected = index === hotelIndex;
-    });
-    setItinerary(updatedItinerary);
+  const allHotelsSelected = () => {
+    if (!itinerary?.itinerary) return false;
+    const numberOfDays = itinerary.itinerary.length;
+    return Object.keys(selectedHotels).length === numberOfDays;
   };
 
   // Show loading state while user data is loading
@@ -733,7 +741,59 @@ const TravelInterface = () => {
                           </PopoverContent>
                         </Popover>
                       </div>
-                    </div>
+                   </div>
+                 </div>
+
+                   {/* Stay Type Selection */}
+                   <div>
+                     <Label htmlFor="stayType" className="text-lg font-semibold mb-4 block">
+                       What type of accommodation do you prefer?
+                     </Label>
+                     <RadioGroup value={stayType} onValueChange={setStayType}>
+                       <div className="grid md:grid-cols-3 gap-4">
+                         <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                           <RadioGroupItem value="hostel" id="hostel" />
+                           <Label htmlFor="hostel" className="flex items-center space-x-2 cursor-pointer flex-1">
+                             <div>
+                               <div className="font-medium">Hostel</div>
+                               <div className="text-sm text-muted-foreground">Budget-friendly</div>
+                             </div>
+                           </Label>
+                         </div>
+                         <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                           <RadioGroupItem value="3-star" id="3-star" />
+                           <Label htmlFor="3-star" className="flex items-center space-x-2 cursor-pointer flex-1">
+                             <div>
+                               <div className="font-medium">3 Star Hotel</div>
+                               <div className="text-sm text-muted-foreground">Comfortable stay</div>
+                             </div>
+                           </Label>
+                         </div>
+                         <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                           <RadioGroupItem value="5-star" id="5-star" />
+                           <Label htmlFor="5-star" className="flex items-center space-x-2 cursor-pointer flex-1">
+                             <div>
+                               <div className="font-medium">5 Star Hotel</div>
+                               <div className="text-sm text-muted-foreground">Luxury experience</div>
+                             </div>
+                           </Label>
+                         </div>
+                       </div>
+                     </RadioGroup>
+                   </div>
+
+                   {/* Specific Places to Visit */}
+                   <div>
+                     <Label htmlFor="specificPlaces" className="text-lg font-semibold mb-4 block">
+                       Any specific places you want to visit?
+                     </Label>
+                     <Textarea
+                       id="specificPlaces"
+                       placeholder="e.g., Eiffel Tower, Louvre Museum, specific restaurants..."
+                       value={specificPlaces}
+                       onChange={(e) => setSpecificPlaces(e.target.value)}
+                       className="text-lg p-4 min-h-[100px]"
+                     />
                    </div>
 
                    {/* Budget */}
@@ -1083,46 +1143,86 @@ const TravelInterface = () => {
                         </p>
                       )}
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {day.activities?.map((activity: any, activityIndex: number) => (
-                          <div key={activityIndex} className="flex items-start space-x-3 p-3 border rounded-lg">
-                            <Checkbox 
-                              checked={activity.selected || false}
-                              onCheckedChange={() => toggleActivitySelection(dayIndex, activityIndex)}
-                            />
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <Clock className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-medium">{activity.time}</span>
-                                <Badge variant="outline" className="text-xs">{activity.duration}</Badge>
-                              </div>
-                              <h4 className="font-semibold">{activity.activity}</h4>
-                              <p className="text-sm text-muted-foreground mb-2">{activity.description}</p>
-                              <div className="flex items-center space-x-2">
-                                <LocationPin className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">{activity.location}</span>
-                                <Badge variant="secondary" className="text-xs">{activity.estimatedCost}</Badge>
-                                {activity.weatherSuitability && (
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`text-xs ${
-                                      activity.weatherSuitability === 'outdoor' 
-                                        ? 'border-green-500 text-green-600' 
-                                        : activity.weatherSuitability === 'indoor'
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-orange-500 text-orange-600'
-                                    }`}
-                                  >
-                                    {activity.weatherSuitability}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
+                     <CardContent>
+                       <div className="space-y-3">
+                         {day.activities?.map((activity: any, activityIndex: number) => (
+                           <div key={activityIndex} className="flex items-start space-x-3 p-3 border rounded-lg">
+                             <div className="flex-1">
+                               <div className="flex items-center space-x-2 mb-1">
+                                 <Clock className="w-4 h-4 text-muted-foreground" />
+                                 <span className="text-sm font-medium">{activity.time}</span>
+                                 <Badge variant="outline" className="text-xs">{activity.duration}</Badge>
+                               </div>
+                               <h4 className="font-semibold">{activity.activity}</h4>
+                               <p className="text-sm text-muted-foreground mb-2">{activity.description}</p>
+                               <div className="flex items-center space-x-2">
+                                 <LocationPin className="w-4 h-4 text-muted-foreground" />
+                                 <span className="text-sm">{activity.location}</span>
+                                 <Badge variant="secondary" className="text-xs">{activity.estimatedCost}</Badge>
+                                 {activity.weatherSuitability && (
+                                   <Badge 
+                                     variant="outline" 
+                                     className={`text-xs ${
+                                       activity.weatherSuitability === 'outdoor' 
+                                         ? 'border-green-500 text-green-600' 
+                                         : activity.weatherSuitability === 'indoor'
+                                         ? 'border-blue-500 text-blue-600'
+                                         : 'border-orange-500 text-orange-600'
+                                     }`}
+                                   >
+                                     {activity.weatherSuitability}
+                                   </Badge>
+                                 )}
+                               </div>
+                             </div>
+                           </div>
+                         ))}
+                       </div>
+
+                       {/* Hotel Selection for this day */}
+                       {day.hotels && day.hotels.length > 0 && (
+                         <div className="mt-6 pt-6 border-t">
+                           <h4 className="font-semibold mb-4 flex items-center">
+                             <Star className="w-4 h-4 mr-2" />
+                             Select Your Stay for Day {day.day}
+                           </h4>
+                           <div className="grid md:grid-cols-3 gap-4">
+                             {day.hotels.map((hotel: any, hotelIndex: number) => (
+                               <div
+                                 key={hotelIndex}
+                                 onClick={() => handleHotelSelection(dayIndex, hotelIndex)}
+                                 className={cn(
+                                   "p-3 border-2 rounded-lg cursor-pointer transition-all",
+                                   selectedHotels[dayIndex] === hotelIndex
+                                     ? "border-primary bg-primary/5"
+                                     : "border-border hover:border-primary/50"
+                                 )}
+                               >
+                                 {hotel.imageUrl && (
+                                   <img
+                                     src={hotel.imageUrl}
+                                     alt={hotel.name}
+                                     className="w-full h-32 object-cover rounded-md mb-3"
+                                   />
+                                 )}
+                                 <h5 className="font-semibold text-sm mb-1">{hotel.name}</h5>
+                                 <p className="text-xs text-muted-foreground mb-2">{hotel.location}</p>
+                                 <div className="flex items-center justify-between">
+                                   <Badge variant="outline" className="text-xs">{hotel.category}</Badge>
+                                   <span className="text-xs font-semibold">{hotel.pricePerNight}/night</span>
+                                 </div>
+                                 {selectedHotels[dayIndex] === hotelIndex && (
+                                   <div className="mt-2 flex items-center justify-center text-primary text-xs">
+                                     <CheckCircle className="w-3 h-3 mr-1" />
+                                     Selected
+                                   </div>
+                                 )}
+                               </div>
+                             ))}
+                           </div>
+                         </div>
+                       )}
+                     </CardContent>
                   </Card>
                 ))}
               </div>
@@ -1156,34 +1256,19 @@ const TravelInterface = () => {
                 </CardContent>
               </Card>
 
-              {/* Hotel Recommendations */}
-              {itinerary.hotels && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Hotel Recommendations</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {itinerary.hotels.map((hotel: any, index: number) => (
-                        <div key={index} className="p-3 border rounded-lg">
-                          <div className="flex items-start space-x-3">
-                            <Checkbox 
-                              checked={hotel.selected || false}
-                              onCheckedChange={() => toggleHotelSelection(index)}
-                            />
-                            <div className="flex-1">
-                              <h4 className="font-semibold">{hotel.name}</h4>
-                              <p className="text-sm text-muted-foreground">{hotel.location}</p>
-                              <div className="flex items-center space-x-2 mt-1">
-                                <Badge variant="outline" className="text-xs">{hotel.category}</Badge>
-                                <Badge variant="secondary" className="text-xs">{hotel.pricePerNight}/night</Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-2">{hotel.whyRecommended}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              {/* Fix Itinerary Button */}
+              {allHotelsSelected() && (
+                <Card className="bg-gradient-to-r from-primary/10 to-accent/10">
+                  <CardContent className="text-center py-6">
+                    <Button
+                      onClick={() => {
+                        // Navigate to payments page with itinerary data
+                        window.location.href = `/payment?destination=${encodeURIComponent(itinerary.destination)}&budget=${encodeURIComponent(itinerary.estimatedBudget?.total || budget)}`;
+                      }}
+                      className="bg-gradient-ocean text-white text-lg py-6 px-12 hover:scale-105 transition-all duration-300"
+                    >
+                      Fix Itinerary & Proceed to Payment
+                    </Button>
                   </CardContent>
                 </Card>
               )}

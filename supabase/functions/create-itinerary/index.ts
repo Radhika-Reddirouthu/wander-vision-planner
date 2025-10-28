@@ -21,7 +21,9 @@ serve(async (req) => {
       returnDate, 
       budget, 
       needsFlights,
-      pollResults
+      pollResults,
+      stayType = "3-star",
+      specificPlaces = ""
     } = await req.json()
     
     console.log('Creating itinerary for:', { destination, tripType, groupType, groupSize, departDate, returnDate })
@@ -60,12 +62,14 @@ Please prioritize these group preferences in the itinerary. When there are choic
     2. INCLUDE DETAILED ACTIVITIES FOR EVERY SINGLE DAY - DO NOT SKIP ANY DAYS
     3. NO PLACEHOLDERS OR COMMENTS LIKE "Days 4-22 would follow..." - PROVIDE COMPLETE DETAILS
     4. Each day must have at least 2-3 specific activities with times, costs, and descriptions
-    5. Analyze the travel dates (${departDate} to ${returnDate}) for ${destination}
-    6. Check current weather patterns, monsoon seasons, and any recent weather events
-    7. Provide specific timing recommendations and safety considerations
-    8. Consider if this is the optimal time to visit ${destination}
-    9. Include weather-appropriate activities and packing suggestions
-    10. Check for any travel advisories or safety concerns
+    5. Each day MUST have exactly 3 hotel options with proper imageUrl from Unsplash
+    6. Analyze the travel dates (${departDate} to ${returnDate}) for ${destination}
+    7. Check current weather patterns, monsoon seasons, and any recent weather events
+    8. Provide specific timing recommendations and safety considerations
+    9. Consider if this is the optimal time to visit ${destination}
+    10. Include weather-appropriate activities and packing suggestions
+    11. Check for any travel advisories or safety concerns
+    ${specificPlaces ? `12. MUST include these specific places in the itinerary: ${specificPlaces}` : ''}
 
     Provide the response in this JSON format:
     {
@@ -115,6 +119,32 @@ Please prioritize these group preferences in the itinerary. When there are choic
           "day": 1,
           "title": "Day 1 title",
           "weatherNote": "Expected weather for day 1",
+          "hotels": [
+            {
+              "name": "Hotel Name 1",
+              "category": "${stayType}",
+              "pricePerNight": "₹X,XXX",
+              "location": "area name",
+              "whyRecommended": "reason for recommendation",
+              "imageUrl": "https://images.unsplash.com/photo-XXXXX?w=400&h=300&fit=crop"
+            },
+            {
+              "name": "Hotel Name 2",
+              "category": "${stayType}",
+              "pricePerNight": "₹X,XXX",
+              "location": "area name",
+              "whyRecommended": "reason for recommendation",
+              "imageUrl": "https://images.unsplash.com/photo-XXXXX?w=400&h=300&fit=crop"
+            },
+            {
+              "name": "Hotel Name 3",
+              "category": "${stayType}",
+              "pricePerNight": "₹X,XXX",
+              "location": "area name",
+              "whyRecommended": "reason for recommendation",
+              "imageUrl": "https://images.unsplash.com/photo-XXXXX?w=400&h=300&fit=crop"
+            }
+          ],
           "activities": [
             {
               "time": "9:00 AM",
@@ -123,8 +153,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
               "description": "Detailed description with weather considerations",
               "estimatedCost": "₹XXX",
               "duration": "X hours",
-              "weatherSuitability": "indoor/outdoor/flexible",
-              "selected": false
+              "weatherSuitability": "indoor/outdoor/flexible"
             },
             {
               "time": "2:00 PM",
@@ -133,8 +162,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
               "description": "Detailed description",
               "estimatedCost": "₹XXX",
               "duration": "X hours",
-              "weatherSuitability": "indoor/outdoor/flexible",
-              "selected": false
+              "weatherSuitability": "indoor/outdoor/flexible"
             }
           ]
         },
@@ -142,6 +170,9 @@ Please prioritize these group preferences in the itinerary. When there are choic
           "day": 2,
           "title": "Day 2 title",
           "weatherNote": "Expected weather for day 2",
+          "hotels": [
+            // 3 hotel options with imageUrl for day 2
+          ],
           "activities": [
             {
               "time": "9:00 AM",
@@ -150,8 +181,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
               "description": "Detailed description with weather considerations",
               "estimatedCost": "₹XXX",
               "duration": "X hours",
-              "weatherSuitability": "indoor/outdoor/flexible",
-              "selected": false
+              "weatherSuitability": "indoor/outdoor/flexible"
             }
           ]
         }
@@ -184,7 +214,11 @@ Please prioritize these group preferences in the itinerary. When there are choic
 
     CRITICAL INSTRUCTIONS - MUST FOLLOW:
     - CREATE EXACTLY ${totalDays} COMPLETE DAYS OF ITINERARY - NO MISSING DAYS OR PLACEHOLDERS
-    - Each day (from 1 to ${totalDays}) must have 2-3 detailed activities with specific times, locations, and costs
+    - Each day (from 1 to ${totalDays}) must have exactly 3 hotel options with proper imageUrl fields from Unsplash
+    - Each day must have 2-3 detailed activities with specific times, locations, and costs
+    - Hotel category should match the requested stay type: ${stayType}
+    - Use realistic Unsplash image URLs for hotels (search terms like: hotel ${destination}, luxury hotel, ${stayType} hotel)
+    ${specificPlaces ? `- MUST include these specific places: ${specificPlaces}` : ''}
     - DO NOT use comments like "Days X-Y would follow this structure" - PROVIDE FULL DETAILS FOR EACH DAY
     - Research actual weather patterns for ${destination} during ${departDate} to ${returnDate}
     - Check for monsoon seasons, extreme temperatures, or natural disasters
@@ -195,7 +229,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
     - Make it specific to the trip type (${tripType}) and group type (${groupType})
     - RETURN ONLY VALID JSON - NO MARKDOWN FORMATTING OR EXTRA TEXT
     
-    IMPORTANT: Your response should be a complete JSON object with all ${totalDays} days filled out in detail. Do not truncate or use placeholder text.`
+    IMPORTANT: Your response should be a complete JSON object with all ${totalDays} days filled out in detail with 3 hotels each. Do not truncate or use placeholder text.`
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
@@ -262,6 +296,32 @@ Please prioritize these group preferences in the itinerary. When there are choic
                 day: day,
                 title: `Day ${day} - Explore ${destination}`,
                 weatherNote: "Please check local weather conditions",
+                hotels: [
+                  {
+                    name: `Hotel Option 1 - Day ${day}`,
+                    category: stayType,
+                    pricePerNight: "₹3,000",
+                    location: destination,
+                    whyRecommended: "Comfortable stay with good amenities",
+                    imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop"
+                  },
+                  {
+                    name: `Hotel Option 2 - Day ${day}`,
+                    category: stayType,
+                    pricePerNight: "₹3,500",
+                    location: destination,
+                    whyRecommended: "Great location with modern facilities",
+                    imageUrl: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&h=300&fit=crop"
+                  },
+                  {
+                    name: `Hotel Option 3 - Day ${day}`,
+                    category: stayType,
+                    pricePerNight: "₹4,000",
+                    location: destination,
+                    whyRecommended: "Premium choice with excellent service",
+                    imageUrl: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&h=300&fit=crop"
+                  }
+                ],
                 activities: [
                   {
                     time: "9:00 AM",
@@ -270,8 +330,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
                     description: "Explore local attractions and culture",
                     estimatedCost: "₹1,000",
                     duration: "3 hours",
-                    weatherSuitability: "flexible",
-                    selected: false
+                    weatherSuitability: "flexible"
                   },
                   {
                     time: "2:00 PM",
@@ -280,8 +339,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
                     description: "Continue exploring or relax",
                     estimatedCost: "₹800",
                     duration: "2 hours",
-                    weatherSuitability: "flexible",
-                    selected: false
+                    weatherSuitability: "flexible"
                   }
                 ]
               })
@@ -333,6 +391,32 @@ Please prioritize these group preferences in the itinerary. When there are choic
           day: index + 1,
           title: `Day ${index + 1} - Explore ${destination}`,
           weatherNote: "Please check local weather conditions",
+          hotels: [
+            {
+              name: `Hotel Option 1 - Day ${index + 1}`,
+              category: stayType,
+              pricePerNight: "₹3,000",
+              location: destination,
+              whyRecommended: "Comfortable stay with good amenities",
+              imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop"
+            },
+            {
+              name: `Hotel Option 2 - Day ${index + 1}`,
+              category: stayType,
+              pricePerNight: "₹3,500",
+              location: destination,
+              whyRecommended: "Great location with modern facilities",
+              imageUrl: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&h=300&fit=crop"
+            },
+            {
+              name: `Hotel Option 3 - Day ${index + 1}`,
+              category: stayType,
+              pricePerNight: "₹4,000",
+              location: destination,
+              whyRecommended: "Premium choice with excellent service",
+              imageUrl: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&h=300&fit=crop"
+            }
+          ],
           activities: [
             {
               time: "9:00 AM",
@@ -341,8 +425,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
               description: "Explore local attractions and culture",
               estimatedCost: "₹1,000",
               duration: "3 hours",
-              weatherSuitability: "flexible",
-              selected: false
+              weatherSuitability: "flexible"
             },
             {
               time: "2:00 PM",
@@ -351,8 +434,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
               description: "Continue exploring or relax",
               estimatedCost: "₹800",
               duration: "2 hours",
-              weatherSuitability: "flexible",
-              selected: false
+              weatherSuitability: "flexible"
             }
           ]
         })),
