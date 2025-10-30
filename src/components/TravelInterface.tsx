@@ -72,11 +72,14 @@ const TravelInterface = () => {
   const [pollData, setPollData] = useState<any>(null); // Store poll creation response
   const [isLoadingUserData, setIsLoadingUserData] = useState(true);
   const [sourceLocation, setSourceLocation] = useState("");
+  const [returnLocation, setReturnLocation] = useState("");
   const [flightSuggestions, setFlightSuggestions] = useState<any>(null);
   const [isLoadingFlights, setIsLoadingFlights] = useState(false);
   const [stayType, setStayType] = useState("");
+  const [customStay, setCustomStay] = useState("");
   const [specificPlaces, setSpecificPlaces] = useState("");
   const [selectedHotels, setSelectedHotels] = useState<{[key: number]: number}>({});
+  const [selectedFlight, setSelectedFlight] = useState<number | null>(null);
 
   // Load user's saved trip data and check for active polls on component mount
   useEffect(() => {
@@ -207,8 +210,10 @@ const TravelInterface = () => {
           budget,
           needsFlights,
           sourceLocation: needsFlights ? sourceLocation : "",
+          returnLocation: needsFlights ? returnLocation : "",
           pollResults: pollResults,
           stayType,
+          customStay,
           specificPlaces
         }
       });
@@ -294,6 +299,7 @@ const TravelInterface = () => {
     setBudget("");
     setNeedsFlights(false);
     setSourceLocation("");
+    setReturnLocation("");
     setFlightSuggestions(null);
     setEnableGroupPolling(false);
     setEmails([""]);
@@ -302,8 +308,10 @@ const TravelInterface = () => {
     setPollId(null);
     setPollResults(null);
     setStayType("");
+    setCustomStay("");
     setSpecificPlaces("");
     setSelectedHotels({});
+    setSelectedFlight(null);
     // Stay in planning view instead of going to main
     // setCurrentView("main"); - removed this line
 
@@ -792,6 +800,20 @@ const TravelInterface = () => {
                          </div>
                        </div>
                      </RadioGroup>
+                     
+                     {/* Custom Stay Input */}
+                     <div className="mt-4">
+                       <Label htmlFor="customStay" className="text-sm font-medium mb-2 block">
+                         Do you have any specific stay in mind?
+                       </Label>
+                       <Input
+                         id="customStay"
+                         placeholder="e.g., Taj Hotel, specific Airbnb location..."
+                         value={customStay}
+                         onChange={(e) => setCustomStay(e.target.value)}
+                         className="text-lg p-4"
+                       />
+                     </div>
                    </div>
 
                    {/* Specific Places to Visit */}
@@ -835,6 +857,7 @@ const TravelInterface = () => {
                            setNeedsFlights(checked === true);
                            if (!checked) {
                              setSourceLocation("");
+                             setReturnLocation("");
                              setFlightSuggestions(null);
                            }
                          }}
@@ -845,17 +868,31 @@ const TravelInterface = () => {
                        </Label>
                      </div>
                       {needsFlights && (
-                        <div>
-                          <Label htmlFor="sourceLocation" className="text-sm font-medium mb-2 block">
-                            Where are you flying from?
-                          </Label>
-                          <Input 
-                            id="sourceLocation" 
-                            placeholder="Enter your departure city..." 
-                            value={sourceLocation}
-                            onChange={(e) => setSourceLocation(e.target.value)}
-                            className="text-lg p-4"
-                          />
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="sourceLocation" className="text-sm font-medium mb-2 block">
+                              Where are you flying from?
+                            </Label>
+                            <Input 
+                              id="sourceLocation" 
+                              placeholder="Enter your departure city..." 
+                              value={sourceLocation}
+                              onChange={(e) => setSourceLocation(e.target.value)}
+                              className="text-lg p-4"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="returnLocation" className="text-sm font-medium mb-2 block">
+                              Where will you return to after the trip?
+                            </Label>
+                            <Input 
+                              id="returnLocation" 
+                              placeholder="Enter your return city (usually same as departure)..." 
+                              value={returnLocation}
+                              onChange={(e) => setReturnLocation(e.target.value)}
+                              className="text-lg p-4"
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -903,6 +940,99 @@ const TravelInterface = () => {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Main Itinerary */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Flight Selection - Show at the top */}
+              {itinerary.flightOptions && needsFlights && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-2xl flex items-center space-x-2">
+                      <Plane className="w-6 h-6" />
+                      <span>Select Your Flight</span>
+                    </CardTitle>
+                    <p className="text-muted-foreground">
+                      Choose the best flight option for your journey
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {itinerary.flightOptions.map((flight: any, index: number) => (
+                        <div
+                          key={index}
+                          onClick={() => setSelectedFlight(index)}
+                          className={cn(
+                            "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                            selectedFlight === index
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/50"
+                          )}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h4 className="font-semibold text-lg">{flight.airline}</h4>
+                              <p className="text-sm text-muted-foreground">{flight.flightNumber}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-2xl font-bold text-primary">{flight.price}</p>
+                              <Badge variant="outline" className="mt-1">{flight.class}</Badge>
+                            </div>
+                          </div>
+                          
+                          <div className="grid md:grid-cols-2 gap-4 mb-3">
+                            <div>
+                              <p className="text-sm font-medium">Route</p>
+                              <p className="text-sm text-muted-foreground">{flight.route}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Duration</p>
+                              <p className="text-sm text-muted-foreground">{flight.duration}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Departure</p>
+                              <p className="text-sm text-muted-foreground">{flight.departureTime}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Arrival</p>
+                              <p className="text-sm text-muted-foreground">{flight.arrivalTime}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between pt-3 border-t">
+                            <Badge variant="secondary">{flight.stops}</Badge>
+                            <Badge 
+                              variant={flight.availability === "good" ? "default" : flight.availability === "limited" ? "secondary" : "outline"}
+                            >
+                              {flight.availability}
+                            </Badge>
+                          </div>
+                          
+                          <p className="text-sm text-muted-foreground mt-3">{flight.bookingRecommendation}</p>
+                          
+                          {selectedFlight === index && (
+                            <div className="mt-3 flex items-center justify-center text-primary">
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              <span className="font-medium">Selected</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {itinerary.bookingTips && (
+                      <div className="mt-6 p-4 bg-accent/20 rounded-lg">
+                        <h4 className="font-semibold mb-2">💡 Booking Tips</h4>
+                        <ul className="space-y-1">
+                          {itinerary.bookingTips.map((tip: string, index: number) => (
+                            <li key={index} className="text-sm flex items-start">
+                              <span className="text-primary mr-2">•</span>
+                              <span>{tip}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              
               <Card>
                 <CardHeader>
                   <CardTitle className="text-2xl bg-gradient-ocean bg-clip-text text-transparent">

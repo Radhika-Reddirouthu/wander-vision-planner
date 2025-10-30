@@ -22,12 +22,46 @@ serve(async (req) => {
       budget, 
       needsFlights,
       sourceLocation = "",
+      returnLocation = "",
       pollResults,
       stayType = "3-star",
+      customStay = "",
       specificPlaces = ""
     } = await req.json()
     
     console.log('Creating itinerary for:', { destination, tripType, groupType, groupSize, departDate, returnDate })
+    
+    // Get flight suggestions if needed
+    let flightData = null
+    if (needsFlights && sourceLocation) {
+      console.log('Fetching flight suggestions...')
+      try {
+        const flightResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/get-flight-suggestions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': req.headers.get('Authorization') || ''
+          },
+          body: JSON.stringify({
+            sourceLocation,
+            destination,
+            departDate,
+            returnDate,
+            budget,
+            groupSize
+          })
+        })
+        
+        if (flightResponse.ok) {
+          flightData = await flightResponse.json()
+          console.log('Flight suggestions fetched successfully')
+        } else {
+          console.error('Failed to fetch flight suggestions:', await flightResponse.text())
+        }
+      } catch (flightError) {
+        console.error('Error fetching flight suggestions:', flightError)
+      }
+    }
     
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
     if (!GEMINI_API_KEY) {
@@ -56,7 +90,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
     const endDate = new Date(returnDate);
     const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
-    const prompt = `Create a detailed travel itinerary for a ${tripType} ${groupType} trip to ${destination} from ${departDate} to ${returnDate} with a budget of ${budget} INR${groupSize ? ` for ${groupSize} people` : ''}. ${needsFlights && sourceLocation ? `Include flight recommendations from ${sourceLocation} to ${destination}.` : 'No flights needed.'}${pollContext}
+    const prompt = `Create a detailed travel itinerary for a ${tripType} ${groupType} trip to ${destination} from ${departDate} to ${returnDate} with a budget of ${budget} INR${groupSize ? ` for ${groupSize} people` : ''}. ${needsFlights && sourceLocation ? `Flying from ${sourceLocation}${returnLocation ? ` and returning to ${returnLocation}` : ''}.` : 'No flights needed.'}${pollContext}
 
     CRITICAL REQUIREMENTS - MUST FOLLOW:
     1. CREATE ITINERARY FOR EXACTLY ${totalDays} DAYS (from day 1 to day ${totalDays})
@@ -69,8 +103,9 @@ Please prioritize these group preferences in the itinerary. When there are choic
     8. Provide specific timing recommendations and safety considerations
     9. Consider if this is the optimal time to visit ${destination}
     10. Include weather-appropriate activities and packing suggestions
-    11. Check for any travel advisories or safety concerns
-    ${specificPlaces ? `12. MUST include these specific places in the itinerary: ${specificPlaces}` : ''}
+     11. Check for any travel advisories or safety concerns
+     12. Accommodation preference: ${stayType}${customStay ? ` - User has mentioned: "${customStay}" - consider this in hotel recommendations` : ''}
+     ${specificPlaces ? `13. MUST include these specific places in the itinerary: ${specificPlaces}` : ''}
 
     Provide the response in this JSON format:
     {
@@ -362,6 +397,16 @@ Please prioritize these group preferences in the itinerary. When there are choic
               transport: "₹5,000"
             }
           }
+        }
+        
+        // Inject flight data if available
+        if (flightData && !flightData.error) {
+          parsed.flightOptions = flightData.flightOptions
+          parsed.sourceAirport = flightData.sourceAirport
+          parsed.destinationAirport = flightData.destinationAirport
+          parsed.bookingTips = flightData.bookingTips
+          parsed.bestTimeToBook = flightData.bestTimeToBook
+          parsed.priceComparison = flightData.priceComparison
         }
         
         parsedData = parsed
