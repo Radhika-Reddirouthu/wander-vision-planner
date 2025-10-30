@@ -110,9 +110,11 @@ const TravelInterface = () => {
           setBudget(savedData.budget || "");
           setNeedsFlights(savedData.needsFlights || false);
           setSourceLocation(savedData.sourceLocation || "");
+          setReturnLocation(savedData.returnLocation || "");
           setEnableGroupPolling(savedData.enableGroupPolling || false);
           setEmails(savedData.emails || [""]);
           setStayType(savedData.stayType || "");
+          setCustomStay(savedData.customStay || "");
           setSpecificPlaces(savedData.specificPlaces || "");
           
           // Restore dates
@@ -186,6 +188,43 @@ const TravelInterface = () => {
     const timeoutId = setTimeout(saveTripData, 1000); // Debounce saves
     return () => clearTimeout(timeoutId);
   }, [user, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, sourceLocation, enableGroupPolling, emails, currentView, isLoadingUserData, stayType, specificPlaces]);
+
+  // Fetch flight suggestions on the client if missing from itinerary
+  useEffect(() => {
+    const fetchFlightsIfMissing = async () => {
+      if (!itinerary || itinerary.flightOptions || !needsFlights || !sourceLocation || !destination || !departDate || !returnDate) return;
+      setIsLoadingFlights(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('get-flight-suggestions', {
+          body: {
+            sourceLocation,
+            destination,
+            departDate: format(departDate, 'yyyy-MM-dd'),
+            returnDate: format(returnDate, 'yyyy-MM-dd'),
+            budget,
+            groupSize: (groupType === "family" || groupType === "friends") ? groupSize : "1"
+          }
+        });
+        if (error) throw error;
+        if (data?.flightOptions) {
+          setItinerary((prev: any) => ({
+            ...(prev || {}),
+            flightOptions: data.flightOptions,
+            sourceAirport: data.sourceAirport,
+            destinationAirport: data.destinationAirport,
+            bookingTips: data.bookingTips,
+            bestTimeToBook: data.bestTimeToBook,
+            priceComparison: data.priceComparison
+          }));
+        }
+      } catch (e) {
+        console.error('Client flight fetch failed:', e);
+      } finally {
+        setIsLoadingFlights(false);
+      }
+    };
+    fetchFlightsIfMissing();
+  }, [itinerary, needsFlights, sourceLocation, destination, departDate, returnDate, budget, groupType, groupSize]);
 
   const addEmailField = () => {
     setEmails([...emails, ""]);
@@ -404,8 +443,10 @@ const TravelInterface = () => {
           budget: budget || "₹50,000", // Provide default budget if empty
           needsFlights,
           sourceLocation: needsFlights ? sourceLocation : "",
+          returnLocation: needsFlights ? returnLocation : "",
           pollResults: pollResults, // Include poll results if available
           stayType,
+          customStay,
           specificPlaces
         }
       });
