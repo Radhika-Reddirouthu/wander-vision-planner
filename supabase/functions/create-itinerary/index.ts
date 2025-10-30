@@ -21,6 +21,7 @@ serve(async (req) => {
       returnDate, 
       budget, 
       needsFlights,
+      sourceLocation = "",
       pollResults,
       stayType = "3-star",
       specificPlaces = ""
@@ -55,7 +56,7 @@ Please prioritize these group preferences in the itinerary. When there are choic
     const endDate = new Date(returnDate);
     const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
-    const prompt = `Create a detailed travel itinerary for a ${tripType} ${groupType} trip to ${destination} from ${departDate} to ${returnDate} with a budget of ${budget} INR${groupSize ? ` for ${groupSize} people` : ''}. ${needsFlights ? 'Include flight recommendations.' : 'No flights needed.'}${pollContext}
+    const prompt = `Create a detailed travel itinerary for a ${tripType} ${groupType} trip to ${destination} from ${departDate} to ${returnDate} with a budget of ${budget} INR${groupSize ? ` for ${groupSize} people` : ''}. ${needsFlights && sourceLocation ? `Include flight recommendations from ${sourceLocation} to ${destination}.` : 'No flights needed.'}${pollContext}
 
     CRITICAL REQUIREMENTS - MUST FOLLOW:
     1. CREATE ITINERARY FOR EXACTLY ${totalDays} DAYS (from day 1 to day ${totalDays})
