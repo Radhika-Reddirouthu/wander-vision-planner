@@ -1327,19 +1327,30 @@ const TravelInterface = () => {
                                      : "border-border hover:border-primary/50"
                                  )}
                                >
-                                 {hotel.imageUrl && (
-                                   <img
-                                     src={hotel.imageUrl}
-                                     alt={hotel.name}
-                                     className="w-full h-32 object-cover rounded-md mb-3"
-                                   />
-                                 )}
-                                 <h5 className="font-semibold text-sm mb-1">{hotel.name}</h5>
-                                 <p className="text-xs text-muted-foreground mb-2">{hotel.location}</p>
-                                 <div className="flex items-center justify-between">
-                                   <Badge variant="outline" className="text-xs">{hotel.category}</Badge>
-                                   <span className="text-xs font-semibold">{hotel.pricePerNight}/night</span>
-                                 </div>
+                                  {hotel.imageUrl && (
+                                    <img
+                                      src={hotel.imageUrl}
+                                      alt={hotel.name}
+                                      className="w-full h-32 object-cover rounded-md mb-3"
+                                    />
+                                  )}
+                                  <h5 className="font-semibold text-sm mb-1">{hotel.name}</h5>
+                                  {hotel.rating && (
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                      <span className="text-xs font-medium">{hotel.rating}</span>
+                                    </div>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mb-2">{hotel.location}</p>
+                                  {hotel.amenities && hotel.amenities.length > 0 && (
+                                    <p className="text-xs text-muted-foreground mb-2">
+                                      {hotel.amenities.slice(0, 3).join(' • ')}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center justify-between">
+                                    <Badge variant="outline" className="text-xs">{hotel.category}</Badge>
+                                    <span className="text-xs font-semibold">{hotel.pricePerNight}/night</span>
+                                  </div>
                                  {selectedHotels[dayIndex] === hotelIndex && (
                                    <div className="mt-2 flex items-center justify-center text-primary text-xs">
                                      <CheckCircle className="w-3 h-3 mr-1" />
