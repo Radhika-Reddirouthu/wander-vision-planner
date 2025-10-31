@@ -379,19 +379,23 @@ const Payment = () => {
 
                       {selectedUpiApp && (
                         <>
-                          {selectedUpiApp === 'other' && (
-                            <div>
-                              <Label htmlFor="upiId">Enter UPI ID</Label>
-                              <Input
-                                id="upiId"
-                                type="text"
-                                placeholder="yourname@upi"
-                                value={upiId}
-                                onChange={(e) => setUpiId(e.target.value)}
-                                className="mt-2"
-                              />
-                            </div>
-                          )}
+                          <div>
+                            <Label htmlFor="upiId">Enter Your UPI ID {selectedUpiApp !== 'other' && '(Optional)'}</Label>
+                            <Input
+                              id="upiId"
+                              type="text"
+                              placeholder={selectedUpiApp === 'other' ? "yourname@upi" : "yourname@upi (or use app to scan QR)"}
+                              value={upiId}
+                              onChange={(e) => setUpiId(e.target.value)}
+                              className="mt-2"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {selectedUpiApp === 'other' 
+                                ? "Enter your UPI ID to generate payment QR code"
+                                : "Provide your UPI ID for payment confirmation, or scan the QR code with your app"
+                              }
+                            </p>
+                          </div>
 
                           <div className="flex flex-col items-center space-y-4 border rounded-lg p-6 bg-muted/30">
                             <p className="text-sm text-muted-foreground">Scan QR code to pay {formattedTotal}</p>

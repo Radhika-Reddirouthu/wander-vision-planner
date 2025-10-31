@@ -1418,11 +1418,14 @@ const TravelInterface = () => {
                         
                         // Calculate hotel costs
                         let hotelCost = 0;
-                        itinerary.itinerary?.forEach((day: any) => {
-                          const selectedHotel = day.hotels?.find((h: any) => h.selected);
-                          if (selectedHotel && selectedHotel.pricePerNight) {
-                            const priceStr = selectedHotel.pricePerNight.replace(/[₹,]/g, '');
-                            hotelCost += parseInt(priceStr) || 0;
+                        itinerary.itinerary?.forEach((day: any, dayIndex: number) => {
+                          const selectedHotelIndex = selectedHotels[dayIndex];
+                          if (selectedHotelIndex !== undefined && day.hotels?.[selectedHotelIndex]) {
+                            const selectedHotel = day.hotels[selectedHotelIndex];
+                            if (selectedHotel.pricePerNight) {
+                              const priceStr = selectedHotel.pricePerNight.replace(/[₹,]/g, '');
+                              hotelCost += parseInt(priceStr) || 0;
+                            }
                           }
                         });
                         
