@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, CreditCard, Lock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CreditCard, Lock, CheckCircle, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const Payment = () => {
   const { user, loading } = useAuth();
@@ -17,10 +19,13 @@ const Payment = () => {
   const destination = searchParams.get('destination') || '';
   const budget = searchParams.get('budget') || '';
 
+  const [paymentMethod, setPaymentMethod] = useState('credit-card');
   const [cardNumber, setCardNumber] = useState('');
   const [cardName, setCardName] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [selectedUpiApp, setSelectedUpiApp] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -32,13 +37,33 @@ const Payment = () => {
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!cardNumber || !cardName || !expiryDate || !cvv) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all payment details",
-        variant: "destructive"
-      });
-      return;
+    // Validate based on payment method
+    if (paymentMethod === 'credit-card' || paymentMethod === 'debit-card') {
+      if (!cardNumber || !cardName || !expiryDate || !cvv) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all card details",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else if (paymentMethod === 'upi') {
+      if (selectedUpiApp === 'other' && !upiId) {
+        toast({
+          title: "Missing Information",
+          description: "Please enter your UPI ID",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (!selectedUpiApp) {
+        toast({
+          title: "Missing Information",
+          description: "Please select a UPI payment option",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     setIsProcessing(true);
@@ -145,83 +170,206 @@ const Payment = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handlePayment} className="space-y-6">
-                <div>
-                  <Label htmlFor="cardNumber">Card Number</Label>
-                  <Input
-                    id="cardNumber"
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim())}
-                    maxLength={19}
-                    className="mt-2"
-                  />
-                </div>
+              <Tabs value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-6">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="credit-card">Credit Card</TabsTrigger>
+                  <TabsTrigger value="debit-card">Debit Card</TabsTrigger>
+                  <TabsTrigger value="upi">UPI</TabsTrigger>
+                </TabsList>
 
-                <div>
-                  <Label htmlFor="cardName">Cardholder Name</Label>
-                  <Input
-                    id="cardName"
-                    type="text"
-                    placeholder="John Doe"
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    className="mt-2"
-                  />
-                </div>
+                <form onSubmit={handlePayment} className="space-y-6">
+                  <TabsContent value="credit-card" className="space-y-4 mt-0">
+                    <div>
+                      <Label htmlFor="cardNumber">Card Number</Label>
+                      <Input
+                        id="cardNumber"
+                        type="text"
+                        placeholder="1234 5678 9012 3456"
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(e.target.value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim())}
+                        maxLength={19}
+                        className="mt-2"
+                      />
+                    </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="expiryDate">Expiry Date</Label>
-                    <Input
-                      id="expiryDate"
-                      type="text"
-                      placeholder="MM/YY"
-                      value={expiryDate}
-                      onChange={(e) => {
-                        let value = e.target.value.replace(/\D/g, '');
-                        if (value.length >= 2) {
-                          value = value.slice(0, 2) + '/' + value.slice(2, 4);
-                        }
-                        setExpiryDate(value);
-                      }}
-                      maxLength={5}
-                      className="mt-2"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cvv">CVV</Label>
-                    <Input
-                      id="cvv"
-                      type="text"
-                      placeholder="123"
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value.replace(/\D/g, ''))}
-                      maxLength={3}
-                      className="mt-2"
-                    />
-                  </div>
-                </div>
+                    <div>
+                      <Label htmlFor="cardName">Cardholder Name</Label>
+                      <Input
+                        id="cardName"
+                        type="text"
+                        placeholder="John Doe"
+                        value={cardName}
+                        onChange={(e) => setCardName(e.target.value)}
+                        className="mt-2"
+                      />
+                    </div>
 
-                <Button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="w-full bg-gradient-ocean text-white py-6 text-lg hover:scale-105 transition-all duration-300"
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Processing Payment...
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-5 h-5 mr-2" />
-                      Complete Payment
-                    </>
-                  )}
-                </Button>
-              </form>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="expiryDate">Expiry Date</Label>
+                        <Input
+                          id="expiryDate"
+                          type="text"
+                          placeholder="MM/YY"
+                          value={expiryDate}
+                          onChange={(e) => {
+                            let value = e.target.value.replace(/\D/g, '');
+                            if (value.length >= 2) {
+                              value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                            }
+                            setExpiryDate(value);
+                          }}
+                          maxLength={5}
+                          className="mt-2"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="cvv">CVV</Label>
+                        <Input
+                          id="cvv"
+                          type="text"
+                          placeholder="123"
+                          value={cvv}
+                          onChange={(e) => setCvv(e.target.value.replace(/\D/g, ''))}
+                          maxLength={3}
+                          className="mt-2"
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="debit-card" className="space-y-4 mt-0">
+                    <div>
+                      <Label htmlFor="debitCardNumber">Card Number</Label>
+                      <Input
+                        id="debitCardNumber"
+                        type="text"
+                        placeholder="1234 5678 9012 3456"
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(e.target.value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim())}
+                        maxLength={19}
+                        className="mt-2"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="debitCardName">Cardholder Name</Label>
+                      <Input
+                        id="debitCardName"
+                        type="text"
+                        placeholder="John Doe"
+                        value={cardName}
+                        onChange={(e) => setCardName(e.target.value)}
+                        className="mt-2"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="debitExpiryDate">Expiry Date</Label>
+                        <Input
+                          id="debitExpiryDate"
+                          type="text"
+                          placeholder="MM/YY"
+                          value={expiryDate}
+                          onChange={(e) => {
+                            let value = e.target.value.replace(/\D/g, '');
+                            if (value.length >= 2) {
+                              value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                            }
+                            setExpiryDate(value);
+                          }}
+                          maxLength={5}
+                          className="mt-2"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="debitCvv">CVV</Label>
+                        <Input
+                          id="debitCvv"
+                          type="text"
+                          placeholder="123"
+                          value={cvv}
+                          onChange={(e) => setCvv(e.target.value.replace(/\D/g, ''))}
+                          maxLength={3}
+                          className="mt-2"
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="upi" className="space-y-4 mt-0">
+                    <div className="space-y-4">
+                      <Label>Select UPI Payment Method</Label>
+                      <RadioGroup value={selectedUpiApp} onValueChange={setSelectedUpiApp}>
+                        <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-accent cursor-pointer">
+                          <RadioGroupItem value="gpay" id="gpay" />
+                          <Label htmlFor="gpay" className="flex items-center space-x-3 cursor-pointer flex-1">
+                            <Smartphone className="w-5 h-5 text-primary" />
+                            <span>Google Pay (GPay)</span>
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-accent cursor-pointer">
+                          <RadioGroupItem value="phonepe" id="phonepe" />
+                          <Label htmlFor="phonepe" className="flex items-center space-x-3 cursor-pointer flex-1">
+                            <Smartphone className="w-5 h-5 text-primary" />
+                            <span>PhonePe</span>
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-accent cursor-pointer">
+                          <RadioGroupItem value="paytm" id="paytm" />
+                          <Label htmlFor="paytm" className="flex items-center space-x-3 cursor-pointer flex-1">
+                            <Smartphone className="w-5 h-5 text-primary" />
+                            <span>Paytm</span>
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-accent cursor-pointer">
+                          <RadioGroupItem value="other" id="other" />
+                          <Label htmlFor="other" className="flex items-center space-x-3 cursor-pointer flex-1">
+                            <Smartphone className="w-5 h-5 text-primary" />
+                            <span>Other UPI ID</span>
+                          </Label>
+                        </div>
+                      </RadioGroup>
+
+                      {selectedUpiApp === 'other' && (
+                        <div>
+                          <Label htmlFor="upiId">Enter UPI ID</Label>
+                          <Input
+                            id="upiId"
+                            type="text"
+                            placeholder="yourname@upi"
+                            value={upiId}
+                            onChange={(e) => setUpiId(e.target.value)}
+                            className="mt-2"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <Button
+                    type="submit"
+                    disabled={isProcessing}
+                    className="w-full bg-gradient-ocean text-white py-6 text-lg hover:scale-105 transition-all duration-300"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Processing Payment...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-5 h-5 mr-2" />
+                        Complete Payment
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Tabs>
             </CardContent>
           </Card>
         </div>

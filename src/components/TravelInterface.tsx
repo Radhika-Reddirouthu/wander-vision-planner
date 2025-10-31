@@ -79,7 +79,8 @@ const TravelInterface = () => {
   const [customStay, setCustomStay] = useState("");
   const [specificPlaces, setSpecificPlaces] = useState("");
   const [selectedHotels, setSelectedHotels] = useState<{[key: number]: number}>({});
-  const [selectedFlight, setSelectedFlight] = useState<number | null>(null);
+  const [selectedOutboundFlight, setSelectedOutboundFlight] = useState<number | null>(null);
+  const [selectedReturnFlight, setSelectedReturnFlight] = useState<number | null>(null);
 
   // Load user's saved trip data and check for active polls on component mount
   useEffect(() => {
@@ -192,7 +193,8 @@ const TravelInterface = () => {
   // Fetch flight suggestions on the client if missing from itinerary
   useEffect(() => {
     const fetchFlightsIfMissing = async () => {
-      if (!itinerary || itinerary.flightOptions || !needsFlights || !sourceLocation || !destination || !departDate || !returnDate) return;
+      // Check if we already have flights (either new or old format)
+      if (!itinerary || itinerary.outboundFlights || itinerary.flightOptions || !needsFlights || !sourceLocation || !destination || !departDate || !returnDate) return;
       setIsLoadingFlights(true);
       try {
         const { data, error } = await supabase.functions.invoke('get-flight-suggestions', {
@@ -206,10 +208,13 @@ const TravelInterface = () => {
           }
         });
         if (error) throw error;
-        if (data?.flightOptions) {
+        // Handle both new format (outboundFlights + returnFlights) and legacy format (flightOptions)
+        if (data?.outboundFlights || data?.flightOptions) {
           setItinerary((prev: any) => ({
             ...(prev || {}),
-            flightOptions: data.flightOptions,
+            outboundFlights: data.outboundFlights,
+            returnFlights: data.returnFlights,
+            flightOptions: data.flightOptions, // Keep for backward compatibility
             sourceAirport: data.sourceAirport,
             destinationAirport: data.destinationAirport,
             bookingTips: data.bookingTips,
@@ -350,7 +355,8 @@ const TravelInterface = () => {
     setCustomStay("");
     setSpecificPlaces("");
     setSelectedHotels({});
-    setSelectedFlight(null);
+    setSelectedOutboundFlight(null);
+    setSelectedReturnFlight(null);
     // Stay in planning view instead of going to main
     // setCurrentView("main"); - removed this line
 
@@ -982,80 +988,163 @@ const TravelInterface = () => {
             {/* Main Itinerary */}
             <div className="lg:col-span-2 space-y-6">
               {/* Flight Selection - Show at the top */}
-              {itinerary.flightOptions && needsFlights && (
+              {((itinerary.outboundFlights && itinerary.returnFlights) || itinerary.flightOptions) && needsFlights && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-2xl flex items-center space-x-2">
                       <Plane className="w-6 h-6" />
-                      <span>Select Your Flight</span>
+                      <span>Select Your Flights</span>
                     </CardTitle>
                     <p className="text-muted-foreground">
-                      Choose the best flight option for your journey
+                      Choose the best flight options for your round trip
                     </p>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {itinerary.flightOptions.map((flight: any, index: number) => (
-                        <div
-                          key={index}
-                          onClick={() => setSelectedFlight(index)}
-                          className={cn(
-                            "p-4 border-2 rounded-lg cursor-pointer transition-all",
-                            selectedFlight === index
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/50"
-                          )}
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <h4 className="font-semibold text-lg">{flight.airline}</h4>
-                              <p className="text-sm text-muted-foreground">{flight.flightNumber}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-2xl font-bold text-primary">{flight.price}</p>
-                              <Badge variant="outline" className="mt-1">{flight.class}</Badge>
-                            </div>
-                          </div>
-                          
-                          <div className="grid md:grid-cols-2 gap-4 mb-3">
-                            <div>
-                              <p className="text-sm font-medium">Route</p>
-                              <p className="text-sm text-muted-foreground">{flight.route}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">Duration</p>
-                              <p className="text-sm text-muted-foreground">{flight.duration}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">Departure</p>
-                              <p className="text-sm text-muted-foreground">{flight.departureTime}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">Arrival</p>
-                              <p className="text-sm text-muted-foreground">{flight.arrivalTime}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center justify-between pt-3 border-t">
-                            <Badge variant="secondary">{flight.stops}</Badge>
-                            <Badge 
-                              variant={flight.availability === "good" ? "default" : flight.availability === "limited" ? "secondary" : "outline"}
+                  <CardContent className="space-y-8">
+                    {/* Outbound Flights */}
+                    {(itinerary.outboundFlights || itinerary.flightOptions) && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4 flex items-center">
+                          <Plane className="w-5 h-5 mr-2 text-primary" />
+                          Outbound Flights {itinerary.sourceAirport && itinerary.destinationAirport && 
+                            `(${itinerary.sourceAirport.code} → ${itinerary.destinationAirport.code})`}
+                        </h3>
+                        <div className="space-y-4">
+                          {(itinerary.outboundFlights || itinerary.flightOptions || []).map((flight: any, index: number) => (
+                            <div
+                              key={index}
+                              onClick={() => setSelectedOutboundFlight(index)}
+                              className={cn(
+                                "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                                selectedOutboundFlight === index
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/50"
+                              )}
                             >
-                              {flight.availability}
-                            </Badge>
-                          </div>
-                          
-                          <p className="text-sm text-muted-foreground mt-3">{flight.bookingRecommendation}</p>
-                          
-                          {selectedFlight === index && (
-                            <div className="mt-3 flex items-center justify-center text-primary">
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              <span className="font-medium">Selected</span>
+                              <div className="flex justify-between items-start mb-3">
+                                <div>
+                                  <h4 className="font-semibold text-lg">{flight.airline}</h4>
+                                  <p className="text-sm text-muted-foreground">{flight.flightNumber}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-2xl font-bold text-primary">{flight.price}</p>
+                                  <Badge variant="outline" className="mt-1">{flight.class}</Badge>
+                                </div>
+                              </div>
+                              
+                              <div className="grid md:grid-cols-2 gap-4 mb-3">
+                                <div>
+                                  <p className="text-sm font-medium">Route</p>
+                                  <p className="text-sm text-muted-foreground">{flight.route}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">Duration</p>
+                                  <p className="text-sm text-muted-foreground">{flight.duration}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">Departure</p>
+                                  <p className="text-sm text-muted-foreground">{flight.departureTime}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">Arrival</p>
+                                  <p className="text-sm text-muted-foreground">{flight.arrivalTime}</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center justify-between pt-3 border-t">
+                                <Badge variant="secondary">{flight.stops}</Badge>
+                                <Badge 
+                                  variant={flight.availability === "good" ? "default" : flight.availability === "limited" ? "secondary" : "outline"}
+                                >
+                                  {flight.availability}
+                                </Badge>
+                              </div>
+                              
+                              <p className="text-sm text-muted-foreground mt-3">{flight.bookingRecommendation}</p>
+                              
+                              {selectedOutboundFlight === index && (
+                                <div className="mt-3 flex items-center justify-center text-primary">
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  <span className="font-medium">Selected</span>
+                                </div>
+                              )}
                             </div>
-                          )}
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    )}
+
+                    {/* Return Flights */}
+                    {itinerary.returnFlights && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4 flex items-center">
+                          <Plane className="w-5 h-5 mr-2 text-primary rotate-180" />
+                          Return Flights {itinerary.destinationAirport && itinerary.sourceAirport && 
+                            `(${itinerary.destinationAirport.code} → ${itinerary.sourceAirport.code})`}
+                        </h3>
+                        <div className="space-y-4">
+                          {itinerary.returnFlights.map((flight: any, index: number) => (
+                            <div
+                              key={index}
+                              onClick={() => setSelectedReturnFlight(index)}
+                              className={cn(
+                                "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                                selectedReturnFlight === index
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/50"
+                              )}
+                            >
+                              <div className="flex justify-between items-start mb-3">
+                                <div>
+                                  <h4 className="font-semibold text-lg">{flight.airline}</h4>
+                                  <p className="text-sm text-muted-foreground">{flight.flightNumber}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-2xl font-bold text-primary">{flight.price}</p>
+                                  <Badge variant="outline" className="mt-1">{flight.class}</Badge>
+                                </div>
+                              </div>
+                              
+                              <div className="grid md:grid-cols-2 gap-4 mb-3">
+                                <div>
+                                  <p className="text-sm font-medium">Route</p>
+                                  <p className="text-sm text-muted-foreground">{flight.route}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">Duration</p>
+                                  <p className="text-sm text-muted-foreground">{flight.duration}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">Departure</p>
+                                  <p className="text-sm text-muted-foreground">{flight.departureTime}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">Arrival</p>
+                                  <p className="text-sm text-muted-foreground">{flight.arrivalTime}</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center justify-between pt-3 border-t">
+                                <Badge variant="secondary">{flight.stops}</Badge>
+                                <Badge 
+                                  variant={flight.availability === "good" ? "default" : flight.availability === "limited" ? "secondary" : "outline"}
+                                >
+                                  {flight.availability}
+                                </Badge>
+                              </div>
+                              
+                              <p className="text-sm text-muted-foreground mt-3">{flight.bookingRecommendation}</p>
+                              
+                              {selectedReturnFlight === index && (
+                                <div className="mt-3 flex items-center justify-center text-primary">
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  <span className="font-medium">Selected</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     
                     {itinerary.bookingTips && (
                       <div className="mt-6 p-4 bg-accent/20 rounded-lg">
