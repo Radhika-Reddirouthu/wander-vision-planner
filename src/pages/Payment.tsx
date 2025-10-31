@@ -377,26 +377,28 @@ const Payment = () => {
                         </div>
                       </RadioGroup>
 
-                      {selectedUpiApp === 'other' && (
-                        <div>
-                          <Label htmlFor="upiId">Enter UPI ID</Label>
-                          <Input
-                            id="upiId"
-                            type="text"
-                            placeholder="yourname@upi"
-                            value={upiId}
-                            onChange={(e) => setUpiId(e.target.value)}
-                            className="mt-2"
-                          />
-                        </div>
-                      )}
-
                       {selectedUpiApp && (
-                        <div className="flex flex-col items-center space-y-4 border rounded-lg p-6 bg-muted/30">
-                          <p className="text-sm text-muted-foreground">Scan QR code to pay {formattedTotal}</p>
-                          <canvas ref={canvasRef} className="border-4 border-white rounded-lg shadow-lg" />
-                          <p className="text-xs text-muted-foreground">Or open your UPI app and scan this code</p>
-                        </div>
+                        <>
+                          {selectedUpiApp === 'other' && (
+                            <div>
+                              <Label htmlFor="upiId">Enter UPI ID</Label>
+                              <Input
+                                id="upiId"
+                                type="text"
+                                placeholder="yourname@upi"
+                                value={upiId}
+                                onChange={(e) => setUpiId(e.target.value)}
+                                className="mt-2"
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex flex-col items-center space-y-4 border rounded-lg p-6 bg-muted/30">
+                            <p className="text-sm text-muted-foreground">Scan QR code to pay {formattedTotal}</p>
+                            <canvas ref={canvasRef} className="border-4 border-white rounded-lg shadow-lg" />
+                            <p className="text-xs text-muted-foreground">Or open your UPI app and scan this code</p>
+                          </div>
+                        </>
                       )}
                     </div>
                   </TabsContent>

@@ -190,6 +190,20 @@ const TravelInterface = () => {
     return () => clearTimeout(timeoutId);
   }, [user, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, sourceLocation, enableGroupPolling, emails, currentView, isLoadingUserData, stayType, specificPlaces]);
 
+  // Clear flight data when key inputs change
+  useEffect(() => {
+    if (itinerary) {
+      console.log('Clearing flight data due to input changes');
+      setItinerary((prev: any) => {
+        if (!prev) return prev;
+        const { outboundFlights, returnFlights, flightOptions, sourceAirport, destinationAirport, ...rest } = prev;
+        return rest;
+      });
+      setSelectedOutboundFlight(null);
+      setSelectedReturnFlight(null);
+    }
+  }, [sourceLocation, destination, departDate, returnDate]);
+
   // Fetch flight suggestions immediately when itinerary loads
   useEffect(() => {
     const fetchFlightsIfNeeded = async () => {

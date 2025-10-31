@@ -102,10 +102,10 @@ Please prioritize these group preferences in the itinerary. When there are choic
     7. Check current weather patterns, monsoon seasons, and any recent weather events
     8. Provide specific timing recommendations and safety considerations
     9. Consider if this is the optimal time to visit ${destination}
-    10. Include weather-appropriate activities and packing suggestions
-     11. Check for any travel advisories or safety concerns
-     12. Accommodation preference: ${stayType}${customStay ? ` - User has mentioned: "${customStay}" - consider this in hotel recommendations` : ''}
-     ${specificPlaces ? `13. MUST include these specific places in the itinerary: ${specificPlaces}` : ''}
+     10. Include weather-appropriate activities and packing suggestions
+      11. Check for any travel advisories or safety concerns
+      12. Accommodation preference: ${stayType}${customStay ? ` - IMPORTANT: User specifically requested: "${customStay}". Generate hotels matching this exact request with REAL hotel names from ${destination}` : ' - Generate REAL, SPECIFIC hotel names that exist in ' + destination}
+      ${specificPlaces ? `13. MUST include these specific places in the itinerary: ${specificPlaces}` : ''}
 
     Provide the response in this JSON format:
     {
@@ -157,28 +157,28 @@ Please prioritize these group preferences in the itinerary. When there are choic
           "weatherNote": "Expected weather for day 1",
           "hotels": [
             {
-              "name": "Hotel Name 1",
+              "name": "REAL Hotel Name from ${destination} (not generic like 'Hotel 1')",
               "category": "${stayType}",
               "pricePerNight": "₹X,XXX",
-              "location": "area name",
+              "location": "specific area name",
               "whyRecommended": "reason for recommendation",
-              "imageUrl": "https://images.unsplash.com/photo-XXXXX?w=400&h=300&fit=crop"
+              "imageUrl": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop"
             },
             {
-              "name": "Hotel Name 2",
+              "name": "REAL Hotel Name from ${destination} (different hotel)",
               "category": "${stayType}",
               "pricePerNight": "₹X,XXX",
-              "location": "area name",
+              "location": "specific area name",
               "whyRecommended": "reason for recommendation",
-              "imageUrl": "https://images.unsplash.com/photo-XXXXX?w=400&h=300&fit=crop"
+              "imageUrl": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop"
             },
             {
-              "name": "Hotel Name 3",
+              "name": "REAL Hotel Name from ${destination} (third different hotel)",
               "category": "${stayType}",
               "pricePerNight": "₹X,XXX",
-              "location": "area name",
+              "location": "specific area name",
               "whyRecommended": "reason for recommendation",
-              "imageUrl": "https://images.unsplash.com/photo-XXXXX?w=400&h=300&fit=crop"
+              "imageUrl": "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&h=300&fit=crop"
             }
           ],
           "activities": [
@@ -251,9 +251,11 @@ Please prioritize these group preferences in the itinerary. When there are choic
     CRITICAL INSTRUCTIONS - MUST FOLLOW:
     - CREATE EXACTLY ${totalDays} COMPLETE DAYS OF ITINERARY - NO MISSING DAYS OR PLACEHOLDERS
     - Each day (from 1 to ${totalDays}) must have exactly 3 hotel options with proper imageUrl fields from Unsplash
+    - HOTELS MUST HAVE REAL, SPECIFIC NAMES - NOT "Hotel 1", "Hotel 2", "Hotel 3" - use actual hotel names that would exist in ${destination}
+    - ${customStay ? `User specifically wants: "${customStay}" - Generate hotels that match this requirement with real names` : `Generate real hotel names matching ${stayType} category in ${destination}`}
     - Each day must have 2-3 detailed activities with specific times, locations, and costs
     - Hotel category should match the requested stay type: ${stayType}
-    - Use realistic Unsplash image URLs for hotels (search terms like: hotel ${destination}, luxury hotel, ${stayType} hotel)
+    - Use realistic Unsplash image URLs for hotels with proper photo IDs
     ${specificPlaces ? `- MUST include these specific places: ${specificPlaces}` : ''}
     - DO NOT use comments like "Days X-Y would follow this structure" - PROVIDE FULL DETAILS FOR EACH DAY
     - Research actual weather patterns for ${destination} during ${departDate} to ${returnDate}
