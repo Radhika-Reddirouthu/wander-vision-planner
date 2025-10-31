@@ -319,6 +319,17 @@ Please prioritize these group preferences in the itinerary. When there are choic
         // Remove trailing commas before closing brackets/braces
         jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1')
         
+        // Replace HTML entities and control characters
+        jsonText = jsonText.replace(/\\u0026/g, '&')
+        jsonText = jsonText.replace(/\u0026/g, '&')
+        jsonText = jsonText.replace(/\\u003c/g, '<')
+        jsonText = jsonText.replace(/\\u003e/g, '>')
+        jsonText = jsonText.replace(/\\u0027/g, "'")
+        jsonText = jsonText.replace(/\\u0022/g, '"')
+        
+        // Remove any other control characters that might break JSON parsing
+        jsonText = jsonText.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+        
         // Handle incomplete itinerary arrays - if itinerary is incomplete, create a basic structure
         const parsed = JSON.parse(jsonText)
         
