@@ -190,11 +190,13 @@ const TravelInterface = () => {
     return () => clearTimeout(timeoutId);
   }, [user, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, sourceLocation, enableGroupPolling, emails, currentView, isLoadingUserData, stayType, specificPlaces]);
 
-  // Fetch flight suggestions on the client if missing from itinerary
+  // Fetch flight suggestions immediately when itinerary loads
   useEffect(() => {
-    const fetchFlightsIfMissing = async () => {
-      // Check if we already have flights (either new or old format)
-      if (!itinerary || itinerary.outboundFlights || itinerary.flightOptions || !needsFlights || !sourceLocation || !destination || !departDate || !returnDate) return;
+    const fetchFlightsIfNeeded = async () => {
+      // Check if we need flights and don't have them yet
+      if (!itinerary || (itinerary.outboundFlights || itinerary.flightOptions) || !needsFlights || !sourceLocation || !destination || !departDate || !returnDate) return;
+      
+      console.log('Fetching flight suggestions before showing itinerary...');
       setIsLoadingFlights(true);
       try {
         const { data, error } = await supabase.functions.invoke('get-flight-suggestions', {
@@ -208,13 +210,13 @@ const TravelInterface = () => {
           }
         });
         if (error) throw error;
-        // Handle both new format (outboundFlights + returnFlights) and legacy format (flightOptions)
+        
         if (data?.outboundFlights || data?.flightOptions) {
           setItinerary((prev: any) => ({
             ...(prev || {}),
             outboundFlights: data.outboundFlights,
             returnFlights: data.returnFlights,
-            flightOptions: data.flightOptions, // Keep for backward compatibility
+            flightOptions: data.flightOptions,
             sourceAirport: data.sourceAirport,
             destinationAirport: data.destinationAirport,
             bookingTips: data.bookingTips,
@@ -228,7 +230,7 @@ const TravelInterface = () => {
         setIsLoadingFlights(false);
       }
     };
-    fetchFlightsIfMissing();
+    fetchFlightsIfNeeded();
   }, [itinerary, needsFlights, sourceLocation, destination, departDate, returnDate, budget, groupType, groupSize]);
 
   const addEmailField = () => {
@@ -971,6 +973,18 @@ const TravelInterface = () => {
      );
   }
 
+  // Loading state while fetching flights for itinerary
+  if (currentView === "itinerary" && isLoadingFlights && needsFlights && !itinerary?.outboundFlights && !itinerary?.flightOptions) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading flight options...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Itinerary Display View
   if (currentView === "itinerary" && itinerary) {
     return (
@@ -1363,8 +1377,51 @@ const TravelInterface = () => {
                   <CardContent className="text-center py-6">
                     <Button
                       onClick={() => {
-                        // Navigate to payments page with itinerary data
-                        window.location.href = `/payment?destination=${encodeURIComponent(itinerary.destination)}&budget=${encodeURIComponent(itinerary.estimatedBudget?.total || budget)}`;
+                        // Calculate actual costs
+                        let flightCost = 0;
+                        const outboundFlights = itinerary.outboundFlights || itinerary.flightOptions || [];
+                        const returnFlights = itinerary.returnFlights || [];
+                        
+                        if (selectedOutboundFlight !== null && outboundFlights[selectedOutboundFlight]) {
+                          const priceStr = outboundFlights[selectedOutboundFlight].price.replace(/[₹,]/g, '');
+                          flightCost += parseInt(priceStr) || 0;
+                        }
+                        if (selectedReturnFlight !== null && returnFlights[selectedReturnFlight]) {
+                          const priceStr = returnFlights[selectedReturnFlight].price.replace(/[₹,]/g, '');
+                          flightCost += parseInt(priceStr) || 0;
+                        }
+                        
+                        // Calculate hotel costs
+                        let hotelCost = 0;
+                        itinerary.itinerary?.forEach((day: any) => {
+                          const selectedHotel = day.hotels?.find((h: any) => h.selected);
+                          if (selectedHotel && selectedHotel.pricePerNight) {
+                            const priceStr = selectedHotel.pricePerNight.replace(/[₹,]/g, '');
+                            hotelCost += parseInt(priceStr) || 0;
+                          }
+                        });
+                        
+                        // Calculate activities cost
+                        let activitiesCost = 0;
+                        itinerary.itinerary?.forEach((day: any) => {
+                          day.activities?.forEach((activity: any) => {
+                            if (activity.estimatedCost) {
+                              const priceStr = activity.estimatedCost.replace(/[₹,]/g, '');
+                              activitiesCost += parseInt(priceStr) || 0;
+                            }
+                          });
+                        });
+                        
+                        // Add food costs
+                        itinerary.localCuisine?.forEach((dish: any) => {
+                          if (dish.estimatedCost) {
+                            const priceStr = dish.estimatedCost.replace(/[₹,]/g, '');
+                            activitiesCost += parseInt(priceStr) || 0;
+                          }
+                        });
+                        
+                        // Navigate to payment with calculated costs
+                        window.location.href = `/payment?destination=${encodeURIComponent(itinerary.destination)}&flightCost=${flightCost}&hotelCost=${hotelCost}&activitiesCost=${activitiesCost}`;
                       }}
                       className="bg-gradient-ocean text-white text-lg py-6 px-12 hover:scale-105 transition-all duration-300"
                     >
