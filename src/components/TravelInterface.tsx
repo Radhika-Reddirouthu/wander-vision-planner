@@ -1418,16 +1418,24 @@ const TravelInterface = () => {
                         
                         // Calculate hotel costs
                         let hotelCost = 0;
+                        console.log('Selected hotels:', selectedHotels);
+                        console.log('Itinerary days:', itinerary.itinerary?.length);
                         itinerary.itinerary?.forEach((day: any, dayIndex: number) => {
                           const selectedHotelIndex = selectedHotels[dayIndex];
+                          console.log(`Day ${dayIndex} - Selected hotel index:`, selectedHotelIndex);
+                          console.log(`Day ${dayIndex} - Available hotels:`, day.hotels?.length);
                           if (selectedHotelIndex !== undefined && day.hotels?.[selectedHotelIndex]) {
                             const selectedHotel = day.hotels[selectedHotelIndex];
+                            console.log(`Day ${dayIndex} - Selected hotel:`, selectedHotel);
                             if (selectedHotel.pricePerNight) {
                               const priceStr = selectedHotel.pricePerNight.replace(/[₹,]/g, '');
-                              hotelCost += parseInt(priceStr) || 0;
+                              const priceValue = parseInt(priceStr) || 0;
+                              console.log(`Day ${dayIndex} - Price per night: ${selectedHotel.pricePerNight} -> ${priceValue}`);
+                              hotelCost += priceValue;
                             }
                           }
                         });
+                        console.log('Total hotel cost:', hotelCost);
                         
                         // Calculate activities cost
                         let activitiesCost = 0;
