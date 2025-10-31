@@ -92,12 +92,30 @@ Please prioritize these group preferences in the itinerary. When there are choic
 
     const prompt = `Create a detailed travel itinerary for a ${tripType} ${groupType} trip to ${destination} from ${departDate} to ${returnDate} with a budget of ${budget} INR${groupSize ? ` for ${groupSize} people` : ''}. ${needsFlights && sourceLocation ? `Flying from ${sourceLocation}${returnLocation ? ` and returning to ${returnLocation}` : ''}.` : 'No flights needed.'}${pollContext}
 
-    🔴 CRITICAL HOTEL REQUIREMENTS - TOP PRIORITY:
-    ${customStay ? `USER'S SPECIFIC REQUEST: "${customStay}" - This is THE MOST IMPORTANT requirement. Find REAL hotels in ${destination} that EXACTLY match this description.` : `Find REAL, EXISTING hotels in ${destination} that match ${stayType} category.`}
-    - ABSOLUTELY NO GENERIC NAMES like "Hotel 1", "Option 1", "Budget Hotel", "Mid-range Hotel"
-    - Research and use ACTUAL hotel names that exist in ${destination} (e.g., "The Taj Mahal Palace", "Oberoi Udaivilas", "Zostel Jaipur")
-    - Each hotel MUST have a realistic rating between 3.5-5.0 stars
-    - Use Unsplash images with ${destination} hotels in the search query
+    🔴🔴🔴 CRITICAL HOTEL REQUIREMENTS - ABSOLUTE TOP PRIORITY 🔴🔴🔴:
+    ${customStay ? `
+    ⚠️ USER'S SPECIFIC REQUIREMENT: "${customStay}" 
+    - THIS IS NON-NEGOTIABLE - Find REAL, EXISTING hotels in ${destination} that EXACTLY match: "${customStay}"
+    - If user mentioned "beach resort", find actual beach resorts like "The Leela Kovalam Beach Resort", "Taj Exotica Goa"
+    - If user mentioned "boutique hotel", find actual boutique properties like "The Oberoi Amarvilas", "Rambagh Palace"
+    - If user mentioned specific amenities, prioritize hotels with those features` 
+    : `Find REAL, EXISTING hotels in ${destination} that match ${stayType} category.`}
+    
+    🚫 ABSOLUTELY FORBIDDEN - NEVER USE THESE:
+    - "Hotel 1", "Hotel 2", "Hotel 3"
+    - "Option 1", "Option 2", "Option 3"  
+    - "Budget Hotel", "Mid-range Hotel", "Luxury Hotel"
+    - "Hotel Option 1 - Day X"
+    - Any generic placeholder name
+    
+    ✅ MANDATORY - USE ONLY REAL HOTEL NAMES:
+    - Examples for ${destination}: "ITC Grand ${destination}", "Taj ${destination}", "The Leela ${destination}", "Marriott ${destination}", "Hyatt Regency ${destination}"
+    - Budget options: "Zostel ${destination}", "FabHotel", "Treebo Hotels", "OYO Townhouse"
+    - Mid-range: "Fortune Select", "Lemon Tree Hotels", "The Park Hotels"
+    - Luxury: "Oberoi Hotels", "Taj Hotels", "ITC Hotels", "Leela Palaces"
+    - Each hotel MUST include a rating field between 3.5-5.0 stars
+    - Each hotel MUST include 3-5 specific amenities
+    - Use actual hotel search queries for Unsplash images
 
     CRITICAL REQUIREMENTS - MUST FOLLOW:
     1. CREATE ITINERARY FOR EXACTLY ${totalDays} DAYS (from day 1 to day ${totalDays})
@@ -262,13 +280,25 @@ Please prioritize these group preferences in the itinerary. When there are choic
 
     🔴 CRITICAL INSTRUCTIONS - MUST FOLLOW:
     
-    HOTEL NAMING (HIGHEST PRIORITY):
-    ${customStay ? `- USER SPECIFICALLY REQUESTED: "${customStay}" - Find REAL hotels that match this EXACTLY
-    - Example: If user said "beach resort", find actual beach resorts like "The Leela Kovalam Beach Resort"` : `- Find REAL hotels matching ${stayType} category in ${destination}`}
-    - NEVER use: "Hotel 1", "Hotel 2", "Hotel 3", "Option 1", "Budget Hotel", "Luxury Hotel", etc.
-    - ALWAYS use: Actual hotel brand names like "Taj", "Oberoi", "ITC", "Marriott", "Hyatt", "Zostel", local boutique hotel names
-    - Each hotel MUST have a rating field (3.5-5.0 stars)
-    - Include 3-5 amenities per hotel
+    ⚠️⚠️⚠️ HOTEL NAMING - ABSOLUTE NON-NEGOTIABLE REQUIREMENT ⚠️⚠️⚠️:
+    ${customStay ? `
+    🎯 USER EXPLICITLY REQUESTED: "${customStay}"
+    - This is the #1 priority - Find REAL hotels in ${destination} that match: "${customStay}"
+    - Research actual properties that fit this description
+    - Example: If user wants "beach resort" → "The Leela Kovalam", "Taj Fort Aguada Resort & Spa", "Grand Hyatt Goa"
+    - Example: If user wants "heritage hotel" → "Taj Falaknuma Palace", "Rambagh Palace", "Umaid Bhawan Palace"` 
+    : `- Find REAL hotels matching ${stayType} in ${destination}`}
+    
+    🚫 NEVER EVER USE THESE NAMES (will cause rejection):
+    - "Hotel 1", "Hotel 2", "Hotel 3", "Day 1 Hotel", "Day 2 Hotel"
+    - "Option 1", "Option 2", "Budget/Mid-range/Luxury Hotel"
+    - Any name containing "Option" or "Day X"
+    
+    ✅ ONLY USE REAL BRANDS & PROPERTIES:
+    - Major chains: "Taj ${destination}", "Oberoi ${destination}", "ITC Grand ${destination}", "Marriott ${destination}"
+    - Budget: "Zostel ${destination}", "FabHotel ${destination}", "Treebo ${destination}"
+    - Mid-range: "Lemon Tree ${destination}", "The Park ${destination}", "Fortune Select ${destination}"
+    - Each hotel needs: rating (3.5-5.0), 3-5 amenities, realistic price
     
     HOTEL IMAGES:
     - Use Unsplash with search query: "${destination} hotel luxury" or "${destination} resort" 
@@ -307,10 +337,10 @@ Please prioritize these group preferences in the itinerary. When there are choic
           }]
         }],
         generationConfig: {
-          temperature: 0.3,
-          topK: 32,
-          topP: 0.9,
-          maxOutputTokens: 8192,
+          temperature: 0.4,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 16384,
         }
       }),
     })
@@ -365,7 +395,13 @@ Please prioritize these group preferences in the itinerary. When there are choic
           if (currentDays < totalDays) {
             console.log(`Incomplete itinerary: got ${currentDays} days, need ${totalDays}`)
             
-            // Fill in missing days with basic structure
+            // Fill in missing days with realistic hotel names
+            const hotelBrands = stayType === "budget" 
+              ? [`Zostel ${destination}`, `FabHotel ${destination}`, `Treebo ${destination}`]
+              : stayType === "luxury"
+              ? [`Taj ${destination}`, `The Oberoi ${destination}`, `ITC Grand ${destination}`]
+              : [`Lemon Tree ${destination}`, `The Park ${destination}`, `Fortune Select ${destination}`];
+            
             for (let day = currentDays + 1; day <= totalDays; day++) {
               parsed.itinerary.push({
                 day: day,
@@ -373,30 +409,30 @@ Please prioritize these group preferences in the itinerary. When there are choic
                 weatherNote: "Please check local weather conditions",
                 hotels: [
                   {
-                    name: `Hotel Option 1 - Day ${day}`,
+                    name: hotelBrands[0],
                     category: stayType,
                     rating: 4.0,
-                    pricePerNight: "₹3,000",
+                    pricePerNight: stayType === "budget" ? "₹1,500" : stayType === "luxury" ? "₹8,000" : "₹3,000",
                     location: destination,
                     amenities: ["WiFi", "AC", "Restaurant"],
                     whyRecommended: "Comfortable stay with good amenities",
                     imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop"
                   },
                   {
-                    name: `Hotel Option 2 - Day ${day}`,
+                    name: hotelBrands[1],
                     category: stayType,
                     rating: 4.2,
-                    pricePerNight: "₹3,500",
+                    pricePerNight: stayType === "budget" ? "₹2,000" : stayType === "luxury" ? "₹10,000" : "₹3,500",
                     location: destination,
                     amenities: ["WiFi", "Pool", "Gym"],
                     whyRecommended: "Great location with modern facilities",
                     imageUrl: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&h=300&fit=crop"
                   },
                   {
-                    name: `Hotel Option 3 - Day ${day}`,
+                    name: hotelBrands[2],
                     category: stayType,
                     rating: 4.5,
-                    pricePerNight: "₹4,000",
+                    pricePerNight: stayType === "budget" ? "₹2,500" : stayType === "luxury" ? "₹12,000" : "₹4,000",
                     location: destination,
                     amenities: ["WiFi", "Spa", "Restaurant"],
                     whyRecommended: "Premium choice with excellent service",
@@ -464,7 +500,13 @@ Please prioritize these group preferences in the itinerary. When there are choic
       console.error('JSON parsing error:', parseError)
       console.error('Raw Gemini response:', text)
       
-      // Create a fallback itinerary structure
+      // Create a fallback itinerary structure with realistic hotel names
+      const hotelBrands = stayType === "budget" 
+        ? [`Zostel ${destination}`, `FabHotel ${destination}`, `Treebo ${destination}`]
+        : stayType === "luxury"
+        ? [`Taj ${destination}`, `The Oberoi ${destination}`, `ITC Grand ${destination}`]
+        : [`Lemon Tree ${destination}`, `The Park ${destination}`, `Fortune Select ${destination}`];
+      
       parsedData = {
         destination: destination,
         tripType: tripType,
@@ -484,30 +526,30 @@ Please prioritize these group preferences in the itinerary. When there are choic
           weatherNote: "Please check local weather conditions",
           hotels: [
             {
-              name: `Hotel Option 1 - Day ${index + 1}`,
+              name: hotelBrands[0],
               category: stayType,
               rating: 4.0,
-              pricePerNight: "₹3,000",
+              pricePerNight: stayType === "budget" ? "₹1,500" : stayType === "luxury" ? "₹8,000" : "₹3,000",
               location: destination,
               amenities: ["WiFi", "AC", "Restaurant"],
               whyRecommended: "Comfortable stay with good amenities",
               imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop"
             },
             {
-              name: `Hotel Option 2 - Day ${index + 1}`,
+              name: hotelBrands[1],
               category: stayType,
               rating: 4.2,
-              pricePerNight: "₹3,500",
+              pricePerNight: stayType === "budget" ? "₹2,000" : stayType === "luxury" ? "₹10,000" : "₹3,500",
               location: destination,
               amenities: ["WiFi", "Pool", "Gym"],
               whyRecommended: "Great location with modern facilities",
               imageUrl: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&h=300&fit=crop"
             },
             {
-              name: `Hotel Option 3 - Day ${index + 1}`,
+              name: hotelBrands[2],
               category: stayType,
               rating: 4.5,
-              pricePerNight: "₹4,000",
+              pricePerNight: stayType === "budget" ? "₹2,500" : stayType === "luxury" ? "₹12,000" : "₹4,000",
               location: destination,
               amenities: ["WiFi", "Spa", "Restaurant"],
               whyRecommended: "Premium choice with excellent service",
