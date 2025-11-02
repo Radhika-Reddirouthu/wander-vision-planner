@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Loader2, 
   MapPin, 
@@ -19,10 +21,13 @@ import {
   Car,
   Shield,
   Backpack,
-  IndianRupee
+  IndianRupee,
+  Plane,
+  Users
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 interface SurpriseViewProps {
   onBackToMain: () => void;
@@ -86,12 +91,23 @@ interface Itinerary {
 
 const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [budget, setBudget] = useState("");
   const [likedDestination, setLikedDestination] = useState<string | null>(null);
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [isGeneratingItinerary, setIsGeneratingItinerary] = useState(false);
+  
+  // Trip details form state
+  const [showTripDetailsForm, setShowTripDetailsForm] = useState(false);
+  const [tripType, setTripType] = useState("leisure");
+  const [groupType, setGroupType] = useState("solo");
+  const [departDate, setDepartDate] = useState("");
+  const [returnDate, setReturnDate] = useState("");
+  const [stayType, setStayType] = useState("hotel");
+  const [needsFlights, setNeedsFlights] = useState(false);
+  const [sourceLocation, setSourceLocation] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -143,6 +159,7 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
 
       if (error) throw error;
       setItinerary(data.itinerary);
+      setShowTripDetailsForm(true); // Show form after itinerary is generated
     } catch (error) {
       console.error('Error generating itinerary:', error);
     } finally {
@@ -150,9 +167,22 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
     }
   };
 
+  const handleTripDetailsSubmit = () => {
+    if (!departDate || !returnDate) {
+      alert("Please select travel dates");
+      return;
+    }
+    if (needsFlights && !sourceLocation) {
+      alert("Please enter your departure city");
+      return;
+    }
+    setShowTripDetailsForm(false);
+  };
+
   const handleRefreshSuggestions = () => {
     setLikedDestination(null);
     setItinerary(null);
+    setShowTripDetailsForm(false);
     fetchSurpriseDestinations();
   };
 
@@ -321,13 +351,206 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
               <p className="text-xl text-muted-foreground mb-4">
                 {itinerary.duration} personalized itinerary
               </p>
-              <Button onClick={() => setItinerary(null)} variant="outline">
+              <Button onClick={() => { setItinerary(null); setShowTripDetailsForm(false); }} variant="outline">
                 ← Back to Suggestions
               </Button>
             </div>
 
-            {/* Overview */}
-            <Card>
+            {/* Trip Details Form */}
+            {showTripDetailsForm && (
+              <Card className="border-primary/50 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-2xl flex items-center">
+                    <Sparkles className="w-6 h-6 mr-2 text-primary" />
+                    Complete Your Trip Details
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Help us customize your journey
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Trip Type */}
+                  <div>
+                    <Label className="text-base font-semibold mb-3 block">
+                      What type of trip are you planning?
+                    </Label>
+                    <RadioGroup value={tripType} onValueChange={setTripType}>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="leisure" id="leisure" />
+                          <Label htmlFor="leisure" className="cursor-pointer flex-1">Leisure</Label>
+                        </div>
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="adventure" id="adventure" />
+                          <Label htmlFor="adventure" className="cursor-pointer flex-1">Adventure</Label>
+                        </div>
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="cultural" id="cultural" />
+                          <Label htmlFor="cultural" className="cursor-pointer flex-1">Cultural</Label>
+                        </div>
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="business" id="business" />
+                          <Label htmlFor="business" className="cursor-pointer flex-1">Business</Label>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {/* Group Type */}
+                  <div>
+                    <Label className="text-base font-semibold mb-3 block">
+                      Are you traveling solo or with others?
+                    </Label>
+                    <RadioGroup value={groupType} onValueChange={setGroupType}>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="solo" id="solo" />
+                          <Label htmlFor="solo" className="cursor-pointer flex-1 flex items-center">
+                            <Users className="w-4 h-4 mr-2" />
+                            Solo
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="couple" id="couple" />
+                          <Label htmlFor="couple" className="cursor-pointer flex-1 flex items-center">
+                            <Users className="w-4 h-4 mr-2" />
+                            Couple
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="family" id="family" />
+                          <Label htmlFor="family" className="cursor-pointer flex-1 flex items-center">
+                            <Users className="w-4 h-4 mr-2" />
+                            Family
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="friends" id="friends" />
+                          <Label htmlFor="friends" className="cursor-pointer flex-1 flex items-center">
+                            <Users className="w-4 h-4 mr-2" />
+                            Friends
+                          </Label>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {/* Travel Dates */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="departDate" className="text-base font-semibold mb-2 block">
+                        Departure Date
+                      </Label>
+                      <Input
+                        id="departDate"
+                        type="date"
+                        value={departDate}
+                        onChange={(e) => setDepartDate(e.target.value)}
+                        className="text-lg p-4"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="returnDate" className="text-base font-semibold mb-2 block">
+                        Return Date
+                      </Label>
+                      <Input
+                        id="returnDate"
+                        type="date"
+                        value={returnDate}
+                        onChange={(e) => setReturnDate(e.target.value)}
+                        className="text-lg p-4"
+                        min={departDate}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Accommodation Preference */}
+                  <div>
+                    <Label className="text-base font-semibold mb-3 block">
+                      What type of accommodation do you prefer?
+                    </Label>
+                    <RadioGroup value={stayType} onValueChange={setStayType}>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="hotel" id="hotel" />
+                          <Label htmlFor="hotel" className="cursor-pointer flex-1 flex items-center">
+                            <Hotel className="w-4 h-4 mr-2" />
+                            Hotel
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="resort" id="resort" />
+                          <Label htmlFor="resort" className="cursor-pointer flex-1 flex items-center">
+                            <Hotel className="w-4 h-4 mr-2" />
+                            Resort
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="hostel" id="hostel" />
+                          <Label htmlFor="hostel" className="cursor-pointer flex-1 flex items-center">
+                            <Backpack className="w-4 h-4 mr-2" />
+                            Hostel
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:border-primary cursor-pointer">
+                          <RadioGroupItem value="villa" id="villa" />
+                          <Label htmlFor="villa" className="cursor-pointer flex-1 flex items-center">
+                            <Hotel className="w-4 h-4 mr-2" />
+                            Villa/Airbnb
+                          </Label>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {/* Flight Booking */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="needsFlights" 
+                        checked={needsFlights}
+                        onCheckedChange={(checked) => setNeedsFlights(checked === true)}
+                      />
+                      <Label htmlFor="needsFlights" className="text-base font-semibold cursor-pointer flex items-center">
+                        <Plane className="w-4 h-4 mr-2" />
+                        I need help with flight booking
+                      </Label>
+                    </div>
+                    
+                    {needsFlights && (
+                      <div>
+                        <Label htmlFor="sourceLocation" className="text-sm font-medium mb-2 block">
+                          Where are you flying from?
+                        </Label>
+                        <Input
+                          id="sourceLocation"
+                          placeholder="e.g., Delhi, Mumbai, Bangalore"
+                          value={sourceLocation}
+                          onChange={(e) => setSourceLocation(e.target.value)}
+                          className="text-lg p-4"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <Button 
+                    onClick={handleTripDetailsSubmit}
+                    className="w-full bg-gradient-adventure text-white text-lg py-6"
+                    size="lg"
+                  >
+                    Continue to Hotel & Flight Selection
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Overview and Itinerary - Only show after form is submitted */}
+            {!showTripDetailsForm && (
+              <>
+                {/* Overview */}
+                <Card>
               <CardHeader>
                 <CardTitle className="text-2xl flex items-center">
                   <Sparkles className="w-6 h-6 mr-2 text-adventure" />
@@ -527,6 +750,28 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Proceed to Payment Button */}
+            <div className="text-center py-8">
+              <Button 
+                onClick={() => navigate('/payment', { 
+                  state: { 
+                    destination: itinerary.destination,
+                    tripType,
+                    groupType,
+                    departDate,
+                    returnDate,
+                    budget: itinerary.budgetBreakdown.total
+                  }
+                })}
+                className="bg-gradient-adventure text-white text-lg py-6 px-12"
+                size="lg"
+              >
+                Proceed to Payment
+              </Button>
+            </div>
+          </>
+        )}
           </div>
         )}
       </div>
