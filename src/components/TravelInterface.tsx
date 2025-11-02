@@ -1851,7 +1851,17 @@ const TravelInterface = () => {
                   <div className="text-center pt-6">
                     <Button 
                       onClick={() => {
-                        setDestination(imageAnalysis.identifiedPlace);
+                        // Set destination as city, state (if available), country
+                        const destinationParts = [
+                          imageAnalysis.city,
+                          imageAnalysis.state,
+                          imageAnalysis.country
+                        ].filter(Boolean);
+                        setDestination(destinationParts.join(', '));
+                        
+                        // Set the identified place as specific place to visit
+                        setSpecificPlaces(imageAnalysis.identifiedPlace);
+                        
                         setCurrentView('plan');
                       }}
                       className="bg-gradient-nature text-white px-8 py-3 text-lg hover:scale-105 transition-all duration-300"
