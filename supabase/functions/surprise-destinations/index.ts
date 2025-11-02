@@ -101,6 +101,17 @@ serve(async (req) => {
                   "duration": "2 hours",
                   "cost": "₹500-1000"
                 }
+              ],
+              "hotels": [
+                {
+                  "name": "Actual Hotel Name",
+                  "rating": "4.5/5",
+                  "location": "Area/Neighborhood",
+                  "category": "3-Star",
+                  "pricePerNight": "₹2,500",
+                  "amenities": ["Free WiFi", "Pool", "Restaurant", "Room Service"],
+                  "imageUrl": ""
+                }
               ]
             }
           ],
@@ -131,6 +142,8 @@ serve(async (req) => {
           "safetyTips": ["..."],
           "packingTips": ["..."]
         }
+
+        IMPORTANT: For each day, provide 3 different hotel options in the "hotels" array with varying price points (budget/mid-range/luxury). Use real hotel names from ${destination}. Leave imageUrl empty.
       `;
 
       const itineraryResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {

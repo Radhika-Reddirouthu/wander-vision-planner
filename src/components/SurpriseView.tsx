@@ -23,8 +23,10 @@ import {
   Backpack,
   IndianRupee,
   Plane,
-  Users
+  Users,
+  CheckCircle
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -62,6 +64,15 @@ interface Itinerary {
       duration: string;
       cost: string;
     }>;
+    hotels?: Array<{
+      name: string;
+      rating?: string;
+      location: string;
+      category: string;
+      pricePerNight: string;
+      amenities?: string[];
+      imageUrl?: string;
+    }>;
   }>;
   accommodation: {
     type: string;
@@ -87,6 +98,46 @@ interface Itinerary {
   };
   safetyTips: string[];
   packingTips: string[];
+  outboundFlights?: Array<{
+    airline: string;
+    flightNumber: string;
+    price: string;
+    departure: string;
+    departureTime: string;
+    arrival: string;
+    arrivalTime: string;
+    duration: string;
+    stops: string;
+    availability?: string;
+    bookingRecommendation?: string;
+  }>;
+  returnFlights?: Array<{
+    airline: string;
+    flightNumber: string;
+    price: string;
+    departure: string;
+    departureTime: string;
+    arrival: string;
+    arrivalTime: string;
+    duration: string;
+    stops: string;
+    availability?: string;
+    bookingRecommendation?: string;
+  }>;
+  flightOptions?: Array<{
+    airline: string;
+    flightNumber: string;
+    price: string;
+    departure: string;
+    departureTime: string;
+    arrival: string;
+    arrivalTime: string;
+    duration: string;
+    stops: string;
+  }>;
+  sourceAirport?: string;
+  destinationAirport?: string;
+  bookingTips?: string[];
 }
 
 const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
@@ -108,6 +159,13 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
   const [stayType, setStayType] = useState("hotel");
   const [needsFlights, setNeedsFlights] = useState(false);
   const [sourceLocation, setSourceLocation] = useState("");
+  const [returnLocation, setReturnLocation] = useState("");
+  const [selectedHotels, setSelectedHotels] = useState<{[key: number]: number}>({});
+  const [selectedOutboundFlight, setSelectedOutboundFlight] = useState<number | null>(null);
+  const [selectedReturnFlight, setSelectedReturnFlight] = useState<number | null>(null);
+  const [sameHotelForAllDays, setSameHotelForAllDays] = useState(false);
+  const [globalHotelSelection, setGlobalHotelSelection] = useState<number | null>(null);
+  const [isLoadingFlights, setIsLoadingFlights] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -167,7 +225,7 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
     }
   };
 
-  const handleTripDetailsSubmit = () => {
+  const handleTripDetailsSubmit = async () => {
     if (!departDate || !returnDate) {
       alert("Please select travel dates");
       return;
@@ -176,7 +234,73 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
       alert("Please enter your departure city");
       return;
     }
+    
+    // Fetch flights if needed
+    if (needsFlights && sourceLocation && likedDestination) {
+      setIsLoadingFlights(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('get-flight-suggestions', {
+          body: {
+            sourceLocation,
+            destination: likedDestination,
+            departDate,
+            returnDate,
+            returnLocation: returnLocation || sourceLocation,
+            budget: budget || "₹30,000 - ₹80,000",
+            groupSize: groupType === "family" || groupType === "friends" ? "4" : "1"
+          }
+        });
+        if (error) throw error;
+        
+        if (data?.outboundFlights || data?.flightOptions) {
+          setItinerary((prev: any) => ({
+            ...prev,
+            outboundFlights: data.outboundFlights,
+            returnFlights: data.returnFlights,
+            flightOptions: data.flightOptions,
+            sourceAirport: data.sourceAirport,
+            destinationAirport: data.destinationAirport,
+            bookingTips: data.bookingTips
+          }));
+        }
+      } catch (e) {
+        console.error('Flight fetch failed:', e);
+      } finally {
+        setIsLoadingFlights(false);
+      }
+    }
+    
     setShowTripDetailsForm(false);
+  };
+
+  const handleHotelSelection = (dayIndex: number, hotelIndex: number) => {
+    if (sameHotelForAllDays) {
+      setGlobalHotelSelection(hotelIndex);
+      const newSelections: {[key: number]: number} = {};
+      itinerary.itinerary?.forEach((_: any, idx: number) => {
+        newSelections[idx] = hotelIndex;
+      });
+      setSelectedHotels(newSelections);
+    } else {
+      setSelectedHotels(prev => ({
+        ...prev,
+        [dayIndex]: hotelIndex
+      }));
+    }
+  };
+
+  const allHotelsSelected = () => {
+    if (!itinerary?.itinerary) return false;
+    const daysWithHotels = itinerary.itinerary.filter((day: any) => day.hotels && day.hotels.length > 0);
+    return daysWithHotels.every((_: any, idx: number) => selectedHotels[idx] !== undefined);
+  };
+
+  const allFlightsSelected = () => {
+    if (!needsFlights) return true;
+    const outboundFlights = itinerary?.outboundFlights || itinerary?.flightOptions || [];
+    const returnFlights = itinerary?.returnFlights || [];
+    return selectedOutboundFlight !== null && 
+           (returnFlights.length === 0 || selectedReturnFlight !== null);
   };
 
   const handleRefreshSuggestions = () => {
@@ -520,18 +644,32 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
                     </div>
                     
                     {needsFlights && (
-                      <div>
-                        <Label htmlFor="sourceLocation" className="text-sm font-medium mb-2 block">
-                          Where are you flying from?
-                        </Label>
-                        <Input
-                          id="sourceLocation"
-                          placeholder="e.g., Delhi, Mumbai, Bangalore"
-                          value={sourceLocation}
-                          onChange={(e) => setSourceLocation(e.target.value)}
-                          className="text-lg p-4"
-                        />
-                      </div>
+                      <>
+                        <div>
+                          <Label htmlFor="sourceLocation" className="text-sm font-medium mb-2 block">
+                            Where are you flying from?
+                          </Label>
+                          <Input
+                            id="sourceLocation"
+                            placeholder="e.g., Delhi, Mumbai, Bangalore"
+                            value={sourceLocation}
+                            onChange={(e) => setSourceLocation(e.target.value)}
+                            className="text-lg p-4"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="returnLocation" className="text-sm font-medium mb-2 block">
+                            Where would you like to return to? (Optional)
+                          </Label>
+                          <Input
+                            id="returnLocation"
+                            placeholder="Leave blank to return to departure city"
+                            value={returnLocation}
+                            onChange={(e) => setReturnLocation(e.target.value)}
+                            className="text-lg p-4"
+                          />
+                        </div>
+                      </>
                     )}
                   </div>
 
@@ -542,6 +680,131 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
                   >
                     Continue to Hotel & Flight Selection
                   </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Flight Selection */}
+            {!showTripDetailsForm && needsFlights && (itinerary?.outboundFlights || itinerary?.flightOptions) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl flex items-center">
+                    <Plane className="w-6 h-6 mr-2 text-primary" />
+                    Select Your Flights
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Outbound Flights */}
+                  <div>
+                    <h4 className="font-semibold mb-4 text-lg">
+                      {sourceLocation} → {likedDestination}
+                    </h4>
+                    <div className="grid gap-4">
+                      {(itinerary.outboundFlights || itinerary.flightOptions || []).map((flight: any, index: number) => (
+                        <div
+                          key={index}
+                          onClick={() => setSelectedOutboundFlight(index)}
+                          className={cn(
+                            "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                            selectedOutboundFlight === index
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/50"
+                          )}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h5 className="font-semibold">{flight.airline}</h5>
+                              <p className="text-sm text-muted-foreground">{flight.flightNumber}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-primary">{flight.price}</p>
+                              <p className="text-xs text-muted-foreground">per person</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-3 gap-4 mb-3">
+                            <div>
+                              <p className="text-sm font-medium">{flight.departure}</p>
+                              <p className="text-xs text-muted-foreground">{flight.departureTime}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm text-muted-foreground">{flight.duration}</p>
+                              <div className="w-full h-px bg-border my-1"></div>
+                              <p className="text-xs text-muted-foreground">{flight.stops}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium">{flight.arrival}</p>
+                              <p className="text-xs text-muted-foreground">{flight.arrivalTime}</p>
+                            </div>
+                          </div>
+                          
+                          {selectedOutboundFlight === index && (
+                            <div className="mt-3 flex items-center justify-center text-primary">
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              <span className="font-medium">Selected</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Return Flights */}
+                  {itinerary.returnFlights && itinerary.returnFlights.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-4 text-lg">
+                        {likedDestination} → {returnLocation || sourceLocation}
+                      </h4>
+                      <div className="grid gap-4">
+                        {itinerary.returnFlights.map((flight: any, index: number) => (
+                          <div
+                            key={index}
+                            onClick={() => setSelectedReturnFlight(index)}
+                            className={cn(
+                              "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                              selectedReturnFlight === index
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-primary/50"
+                            )}
+                          >
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <h5 className="font-semibold">{flight.airline}</h5>
+                                <p className="text-sm text-muted-foreground">{flight.flightNumber}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-bold text-primary">{flight.price}</p>
+                                <p className="text-xs text-muted-foreground">per person</p>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-4 mb-3">
+                              <div>
+                                <p className="text-sm font-medium">{flight.departure}</p>
+                                <p className="text-xs text-muted-foreground">{flight.departureTime}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm text-muted-foreground">{flight.duration}</p>
+                                <div className="w-full h-px bg-border my-1"></div>
+                                <p className="text-xs text-muted-foreground">{flight.stops}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-medium">{flight.arrival}</p>
+                                <p className="text-xs text-muted-foreground">{flight.arrivalTime}</p>
+                              </div>
+                            </div>
+                            
+                            {selectedReturnFlight === index && (
+                              <div className="mt-3 flex items-center justify-center text-primary">
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                <span className="font-medium">Selected</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -601,6 +864,40 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
 
             {/* Daily Itinerary */}
             <div className="space-y-6">
+              {/* Same Hotel Checkbox */}
+              {itinerary.itinerary && itinerary.itinerary.length > 0 && itinerary.itinerary[0].hotels && (
+                <Card className="border-primary/50">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="sameHotel" 
+                        checked={sameHotelForAllDays}
+                        onCheckedChange={(checked) => {
+                          setSameHotelForAllDays(checked === true);
+                          if (!checked) {
+                            setGlobalHotelSelection(null);
+                          } else if (globalHotelSelection !== null) {
+                            const newSelections: {[key: number]: number} = {};
+                            itinerary.itinerary?.forEach((_: any, idx: number) => {
+                              newSelections[idx] = globalHotelSelection;
+                            });
+                            setSelectedHotels(newSelections);
+                          }
+                        }}
+                      />
+                      <Label htmlFor="sameHotel" className="text-sm font-medium cursor-pointer">
+                        Use the same hotel for all days
+                      </Label>
+                    </div>
+                    {sameHotelForAllDays && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Select a hotel below and it will be applied to all days of your trip
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {itinerary.itinerary.map((day, dayIndex) => (
                 <Card key={day.day}>
                   <CardHeader>
@@ -636,6 +933,64 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
                         </div>
                       ))}
                     </div>
+
+                    {/* Hotel Selection */}
+                    {day.hotels && day.hotels.length > 0 && (!sameHotelForAllDays || dayIndex === 0) && (
+                      <div className="mt-6 pt-6 border-t">
+                        <h4 className="font-semibold mb-4 flex items-center">
+                          <Star className="w-4 h-4 mr-2" />
+                          {sameHotelForAllDays ? 'Select Your Stay for All Days' : `Select Your Stay for Day ${day.day}`}
+                        </h4>
+                        <div className="grid md:grid-cols-3 gap-4">
+                          {day.hotels.map((hotel: any, hotelIndex: number) => (
+                            <div
+                              key={hotelIndex}
+                              onClick={() => handleHotelSelection(dayIndex, hotelIndex)}
+                              className={cn(
+                                "p-3 border-2 rounded-lg cursor-pointer transition-all",
+                                selectedHotels[dayIndex] === hotelIndex
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/50"
+                              )}
+                            >
+                              {hotel.imageUrl && (
+                                <img
+                                  src={hotel.imageUrl}
+                                  alt={hotel.name}
+                                  className="w-full h-32 object-cover rounded-md mb-3"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              )}
+                              <h5 className="font-semibold text-sm mb-1">{hotel.name}</h5>
+                              {hotel.rating && (
+                                <div className="flex items-center gap-1 mb-1">
+                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                  <span className="text-xs font-medium">{hotel.rating}</span>
+                                </div>
+                              )}
+                              <p className="text-xs text-muted-foreground mb-2">{hotel.location}</p>
+                              {hotel.amenities && hotel.amenities.length > 0 && (
+                                <p className="text-xs text-muted-foreground mb-2">
+                                  {hotel.amenities.slice(0, 3).join(' • ')}
+                                </p>
+                              )}
+                              <div className="flex items-center justify-between">
+                                <Badge variant="outline" className="text-xs">{hotel.category}</Badge>
+                                <span className="text-xs font-semibold">{hotel.pricePerNight}/night</span>
+                              </div>
+                              {selectedHotels[dayIndex] === hotelIndex && (
+                                <div className="mt-2 flex items-center justify-center text-primary text-xs">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Selected
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -752,24 +1107,89 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
             </div>
 
             {/* Proceed to Payment Button */}
-            <div className="text-center py-8">
-              <Button 
-                onClick={() => navigate('/payment', { 
-                  state: { 
-                    destination: itinerary.destination,
-                    tripType,
-                    groupType,
-                    departDate,
-                    returnDate,
-                    budget: itinerary.budgetBreakdown.total
-                  }
-                })}
-                className="bg-gradient-adventure text-white text-lg py-6 px-12"
-                size="lg"
-              >
-                Proceed to Payment
-              </Button>
-            </div>
+            {allHotelsSelected() && allFlightsSelected() && (
+              <Card className="bg-gradient-to-r from-primary/10 to-accent/10">
+                <CardContent className="text-center py-6">
+                  <Button 
+                    onClick={() => {
+                      // Calculate actual costs
+                      let flightCost = 0;
+                      const outboundFlights = itinerary.outboundFlights || itinerary.flightOptions || [];
+                      const returnFlights = itinerary.returnFlights || [];
+                      
+                      if (selectedOutboundFlight !== null && outboundFlights[selectedOutboundFlight]) {
+                        const priceStr = outboundFlights[selectedOutboundFlight].price.replace(/[₹,]/g, '');
+                        flightCost += parseInt(priceStr) || 0;
+                      }
+                      if (selectedReturnFlight !== null && returnFlights[selectedReturnFlight]) {
+                        const priceStr = returnFlights[selectedReturnFlight].price.replace(/[₹,]/g, '');
+                        flightCost += parseInt(priceStr) || 0;
+                      }
+                      
+                      // Calculate hotel costs
+                      let hotelCost = 0;
+                      itinerary.itinerary?.forEach((day: any, dayIndex: number) => {
+                        const selectedHotelIndex = selectedHotels[dayIndex];
+                        if (selectedHotelIndex !== undefined && day.hotels?.[selectedHotelIndex]) {
+                          const selectedHotel = day.hotels[selectedHotelIndex];
+                          if (selectedHotel.pricePerNight) {
+                            const priceStr = selectedHotel.pricePerNight.replace(/[₹,]/g, '').replace(/\/night/g, '').trim();
+                            const priceValue = parseInt(priceStr) || 0;
+                            hotelCost += priceValue;
+                          }
+                        }
+                      });
+                      
+                      // Get activities and food cost from budget breakdown
+                      const activitiesCost = parseInt(itinerary.budgetBreakdown.activities?.replace(/[₹,]/g, '') || '0');
+                      const foodCost = parseInt(itinerary.budgetBreakdown.food?.replace(/[₹,]/g, '') || '0');
+                      const transportCost = parseInt(itinerary.budgetBreakdown.transport?.replace(/[₹,]/g, '') || '0');
+                      
+                      const totalCost = flightCost + hotelCost + activitiesCost + foodCost + transportCost;
+                      
+                      navigate('/payment', { 
+                        state: { 
+                          destination: itinerary.destination,
+                          tripType,
+                          groupType,
+                          departDate,
+                          returnDate,
+                          flightCost: flightCost > 0 ? `₹${flightCost.toLocaleString()}` : undefined,
+                          hotelCost: `₹${hotelCost.toLocaleString()}`,
+                          activitiesCost: itinerary.budgetBreakdown.activities,
+                          foodCost: itinerary.budgetBreakdown.food,
+                          transportCost: itinerary.budgetBreakdown.transport,
+                          totalCost: `₹${totalCost.toLocaleString()}`
+                        }
+                      });
+                    }}
+                    className="bg-gradient-adventure text-white text-lg py-6 px-12"
+                    size="lg"
+                  >
+                    <IndianRupee className="w-5 h-5 mr-2" />
+                    Proceed to Payment
+                  </Button>
+                  <p className="text-sm text-muted-foreground mt-4">
+                    Review your selections and proceed to secure payment
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+            
+            {(!allHotelsSelected() || !allFlightsSelected()) && (
+              <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/30">
+                <CardContent className="text-center py-6">
+                  <p className="text-orange-700 dark:text-orange-300 font-medium mb-2">
+                    Please complete your selections to proceed
+                  </p>
+                  <p className="text-sm text-orange-600 dark:text-orange-400">
+                    {!allHotelsSelected() && "Select hotels for all days"}
+                    {!allHotelsSelected() && !allFlightsSelected() && " • "}
+                    {!allFlightsSelected() && "Select your flights"}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
           </div>
