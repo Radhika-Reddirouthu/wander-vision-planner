@@ -262,6 +262,8 @@ const TravelInterface = () => {
   const onProceedToItinerary = async (pollResults: any) => {
     if (!pollResults || !user) return;
     
+    const finalBudget = budget || "₹50,000";
+    
     setPollResults(pollResults);
     setIsLoadingItinerary(true);
     
@@ -275,14 +277,14 @@ const TravelInterface = () => {
           groupSize: (groupType === "family" || groupType === "friends") ? groupSize : "1",
           departDate: departDate ? format(departDate, 'yyyy-MM-dd') : '',
           returnDate: returnDate ? format(returnDate, 'yyyy-MM-dd') : '',
-          budget,
+          budget: finalBudget,
           needsFlights,
           sourceLocation: needsFlights ? sourceLocation : "",
           returnLocation: needsFlights ? returnLocation : "",
           pollResults: pollResults,
           stayType,
           customStay,
-          specificPlaces
+          specificPlaces: specificPlaces ? specificPlaces.substring(0, 200).trim() : ""
         }
       });
       
@@ -417,15 +419,27 @@ const TravelInterface = () => {
   };
 
   const handleCreateItinerary = async () => {
-    if (!destination || !tripType || !groupType || !departDate || !returnDate || !budget) {
-      alert('Please fill in all required fields');
+    // Validation for AI detector flow - budget is optional
+    if (!destination || !tripType || !groupType || !departDate || !returnDate) {
+      alert('Please fill in all required fields: destination, trip type, group type, and travel dates');
       return;
     }
+    
+    // Budget is optional, provide default if not specified
+    const finalBudget = budget || "₹50,000";
 
     if ((groupType === "family" || groupType === "friends") && !groupSize) {
       alert('Please specify the number of people in your group');
       return;
     }
+    
+    console.log('Creating itinerary with:', {
+      destination,
+      specificPlaces: specificPlaces ? specificPlaces.substring(0, 100) : '',
+      tripType,
+      groupType,
+      budget: finalBudget
+    });
 
     setIsLoadingItinerary(true);
     try {
@@ -487,14 +501,14 @@ const TravelInterface = () => {
           groupSize: (groupType === "family" || groupType === "friends") ? groupSize : "1",
           departDate: format(departDate, 'yyyy-MM-dd'),
           returnDate: format(returnDate, 'yyyy-MM-dd'),
-          budget: budget || "₹50,000", // Provide default budget if empty
+          budget: finalBudget, // Use finalBudget instead of budget
           needsFlights,
           sourceLocation: needsFlights ? sourceLocation : "",
           returnLocation: needsFlights ? returnLocation : "",
           pollResults: pollResults, // Include poll results if available
           stayType,
           customStay,
-          specificPlaces
+          specificPlaces: specificPlaces ? specificPlaces.substring(0, 200).trim() : "" // Truncate to prevent oversized requests
         }
       });
       
