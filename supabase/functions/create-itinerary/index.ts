@@ -11,26 +11,38 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Parse body upfront so variables are available in catch as well
+  let body: any = {};
   try {
-    const { 
-      destination, 
-      tripType, 
-      groupType, 
-      groupSize,
-      departDate, 
-      returnDate, 
-      budget, 
-      needsFlights,
-      sourceLocation = "",
-      returnLocation = "",
-      pollResults,
-      stayType = "3-star",
-      customStay = "",
-      specificPlaces = ""
-    } = await req.json()
-    
+    body = await req.json();
+  } catch (e) {
+    console.error('Invalid JSON body', e);
+    return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { 
+    destination, 
+    tripType, 
+    groupType, 
+    groupSize,
+    departDate, 
+    returnDate, 
+    budget, 
+    needsFlights,
+    sourceLocation = "",
+    returnLocation = "",
+    pollResults,
+    stayType = "3-star",
+    customStay = "",
+    specificPlaces = ""
+  } = body;
+
+  try {
     console.log('Creating itinerary for:', { destination, tripType, groupType, groupSize, departDate, returnDate })
-    
+
     // Get flight suggestions if needed
     let flightData = null
     if (needsFlights && sourceLocation) {
@@ -103,6 +115,9 @@ TRIP DETAILS:
 ${customStay ? `- Accommodation Requirement: ${customStay}` : `- Accommodation Type: ${stayType}`}
 ${specificPlaces ? `- Must Visit: ${specificPlaces}` : ''}
 ${pollContext}
+
+DESTINATION NORMALIZATION:
+- If the destination is a landmark/attraction (e.g., "Eiffel Tower"), use the nearest major city as the base (e.g., "Paris, France") for all hotels, activities, and airports. Always include the city name in locations.
 
 MANDATORY REQUIREMENTS:
 
@@ -232,9 +247,13 @@ CRITICAL: Generate ALL ${totalDays} days with SPECIFIC activities (not "explorin
       throw new Error(`Gemini API error: ${data.error?.message || 'Unknown error'}`)
     }
 
-    const text = data.candidates[0].content.parts[0].text
+    if (!data?.candidates?.length || !data.candidates[0]?.content?.parts?.length) {
+      throw new Error('Invalid AI response format');
+    }
+
+    const text = data.candidates[0].content.parts[0].text || ""
     console.log('Raw Gemini response:', text)
-    
+
     // Parse JSON from Gemini response
     let parsedData
     try {
