@@ -47,6 +47,7 @@ serve(async (req) => {
             destination,
             departDate,
             returnDate,
+            returnLocation,
             budget,
             groupSize
           })

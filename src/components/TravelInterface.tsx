@@ -81,6 +81,8 @@ const TravelInterface = () => {
   const [selectedHotels, setSelectedHotels] = useState<{[key: number]: number}>({});
   const [selectedOutboundFlight, setSelectedOutboundFlight] = useState<number | null>(null);
   const [selectedReturnFlight, setSelectedReturnFlight] = useState<number | null>(null);
+  const [sameHotelForAllDays, setSameHotelForAllDays] = useState(false);
+  const [globalHotelSelection, setGlobalHotelSelection] = useState<number | null>(null);
 
   // Load user's saved trip data and check for active polls on component mount
   useEffect(() => {
@@ -219,6 +221,7 @@ const TravelInterface = () => {
             destination,
             departDate: format(departDate, 'yyyy-MM-dd'),
             returnDate: format(returnDate, 'yyyy-MM-dd'),
+            returnLocation,
             budget,
             groupSize: (groupType === "family" || groupType === "friends") ? groupSize : "1"
           }
@@ -373,6 +376,8 @@ const TravelInterface = () => {
     setSelectedHotels({});
     setSelectedOutboundFlight(null);
     setSelectedReturnFlight(null);
+    setSameHotelForAllDays(false);
+    setGlobalHotelSelection(null);
     // Stay in planning view instead of going to main
     // setCurrentView("main"); - removed this line
 
@@ -508,10 +513,20 @@ const TravelInterface = () => {
   };
 
   const handleHotelSelection = (dayIndex: number, hotelIndex: number) => {
-    setSelectedHotels(prev => ({
-      ...prev,
-      [dayIndex]: hotelIndex
-    }));
+    if (sameHotelForAllDays) {
+      // Select same hotel for all days
+      setGlobalHotelSelection(hotelIndex);
+      const newSelections: {[key: number]: number} = {};
+      itinerary.itinerary?.forEach((_: any, idx: number) => {
+        newSelections[idx] = hotelIndex;
+      });
+      setSelectedHotels(newSelections);
+    } else {
+      setSelectedHotels(prev => ({
+        ...prev,
+        [dayIndex]: hotelIndex
+      }));
+    }
   };
 
   const allHotelsSelected = () => {
@@ -1200,6 +1215,43 @@ const TravelInterface = () => {
                     {itinerary.duration} • Estimated Budget: {itinerary.estimatedBudget?.total}
                   </p>
                   
+                  {/* Same Hotel Checkbox */}
+                  {itinerary.itinerary && itinerary.itinerary.length > 0 && itinerary.itinerary[0].hotels && (
+                    <div className="mt-4 p-4 bg-accent/20 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="sameHotel" 
+                          checked={sameHotelForAllDays}
+                          onCheckedChange={(checked) => {
+                            setSameHotelForAllDays(checked === true);
+                            if (!checked) {
+                              // Reset to individual selections
+                              setGlobalHotelSelection(null);
+                            } else if (globalHotelSelection !== null) {
+                              // Apply current global selection to all days
+                              const newSelections: {[key: number]: number} = {};
+                              itinerary.itinerary?.forEach((_: any, idx: number) => {
+                                newSelections[idx] = globalHotelSelection;
+                              });
+                              setSelectedHotels(newSelections);
+                            }
+                          }}
+                        />
+                        <Label htmlFor="sameHotel" className="text-sm font-medium cursor-pointer">
+                          Use the same hotel for all days
+                        </Label>
+                      </div>
+                      {sameHotelForAllDays && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Select a hotel below and it will be applied to all days of your trip
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  <p className="text-muted-foreground mt-2">
+                  </p>
+                  
                   {/* Timing Analysis */}
                   {itinerary.timingAnalysis && (
                     <div className={`mt-4 p-4 rounded-lg border ${
@@ -1309,11 +1361,11 @@ const TravelInterface = () => {
                        </div>
 
                        {/* Hotel Selection for this day */}
-                       {day.hotels && day.hotels.length > 0 && (
+                       {day.hotels && day.hotels.length > 0 && (!sameHotelForAllDays || dayIndex === 0) && (
                          <div className="mt-6 pt-6 border-t">
                            <h4 className="font-semibold mb-4 flex items-center">
                              <Star className="w-4 h-4 mr-2" />
-                             Select Your Stay for Day {day.day}
+                             {sameHotelForAllDays ? 'Select Your Stay for All Days' : `Select Your Stay for Day ${day.day}`}
                            </h4>
                            <div className="grid md:grid-cols-3 gap-4">
                              {day.hotels.map((hotel: any, hotelIndex: number) => (
@@ -1416,26 +1468,20 @@ const TravelInterface = () => {
                           flightCost += parseInt(priceStr) || 0;
                         }
                         
-                        // Calculate hotel costs
+                        // Calculate hotel costs (per night * number of nights = number of days)
                         let hotelCost = 0;
-                        console.log('Selected hotels:', selectedHotels);
-                        console.log('Itinerary days:', itinerary.itinerary?.length);
+                        const numberOfNights = itinerary.itinerary?.length || 0;
                         itinerary.itinerary?.forEach((day: any, dayIndex: number) => {
                           const selectedHotelIndex = selectedHotels[dayIndex];
-                          console.log(`Day ${dayIndex} - Selected hotel index:`, selectedHotelIndex);
-                          console.log(`Day ${dayIndex} - Available hotels:`, day.hotels?.length);
                           if (selectedHotelIndex !== undefined && day.hotels?.[selectedHotelIndex]) {
                             const selectedHotel = day.hotels[selectedHotelIndex];
-                            console.log(`Day ${dayIndex} - Selected hotel:`, selectedHotel);
                             if (selectedHotel.pricePerNight) {
-                              const priceStr = selectedHotel.pricePerNight.replace(/[₹,]/g, '');
+                              const priceStr = selectedHotel.pricePerNight.replace(/[₹,]/g, '').replace(/\/night/g, '').trim();
                               const priceValue = parseInt(priceStr) || 0;
-                              console.log(`Day ${dayIndex} - Price per night: ${selectedHotel.pricePerNight} -> ${priceValue}`);
                               hotelCost += priceValue;
                             }
                           }
                         });
-                        console.log('Total hotel cost:', hotelCost);
                         
                         // Calculate activities cost
                         let activitiesCost = 0;

@@ -17,11 +17,13 @@ serve(async (req) => {
       destination, 
       departDate, 
       returnDate,
+      returnLocation,
       budget,
       groupSize = 1
     } = await req.json()
     
-    console.log('Getting flight suggestions for:', { sourceLocation, destination, departDate, returnDate })
+    const actualReturnLocation = returnLocation || sourceLocation;
+    console.log('Getting flight suggestions for:', { sourceLocation, destination, departDate, returnDate, returnLocation: actualReturnLocation })
     
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
     if (!GEMINI_API_KEY) {
@@ -36,13 +38,14 @@ Travel Details:
 - To: ${destination}
 - Departure Date: ${departDate}
 - Return Date: ${returnDate}
+- Return Location: ${actualReturnLocation}
 - Number of Passengers: ${groupSize}
 - Budget: ${budget}
 
 INSTRUCTIONS:
 1. Identify the nearest major airport to "${sourceLocation}" and the best airport for "${destination}"
 2. Provide 3-4 OUTBOUND flight options (${sourceLocation} to ${destination}) with different airlines and price ranges
-3. Provide 3-4 RETURN flight options (${destination} to ${sourceLocation}) with different airlines and price ranges
+3. Provide 3-4 RETURN flight options (${destination} to ${actualReturnLocation}) with different airlines and price ranges
 4. Include both direct and connecting flight options if applicable
 5. Consider the budget and provide options within range
 6. Give realistic flight durations and prices in Indian Rupees per person
@@ -80,7 +83,7 @@ Provide the response in this JSON format:
     {
       "airline": "Airline name",
       "flightNumber": "Flight number",
-      "route": "${destination} to ${sourceLocation}",
+      "route": "${destination} to ${actualReturnLocation}",
       "departureTime": "time on ${returnDate}",
       "arrivalTime": "time on ${returnDate}",
       "duration": "flight duration",
