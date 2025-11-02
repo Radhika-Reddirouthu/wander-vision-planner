@@ -338,6 +338,7 @@ CRITICAL: Generate ALL ${totalDays} days with SPECIFIC activities (not "explorin
       parsedData = parsed
     } catch (parseError) {
       console.error('Parse error:', parseError)
+    }
 
     // If no parsedData was created, we need to create a fallback
     if (!parsedData) {
