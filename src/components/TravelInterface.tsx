@@ -158,7 +158,7 @@ const TravelInterface = () => {
   // Save trip data automatically when form values change
   useEffect(() => {
     const saveTripData = async () => {
-      if (!user || isLoadingUserData || document.hidden) return;
+      if (!user || isLoadingUserData) return;
 
       const tripData = {
         tripType,
@@ -196,6 +196,60 @@ const TravelInterface = () => {
     const timeoutId = setTimeout(saveTripData, 1000); // Debounce saves
     return () => clearTimeout(timeoutId);
   }, [user, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, sourceLocation, returnLocation, enableGroupPolling, emails, currentView, isLoadingUserData, stayType, specificPlaces]);
+
+  // Persist immediately when the page is being hidden or unloaded to avoid losing state
+  useEffect(() => {
+    if (!user || isLoadingUserData) return;
+
+    const persistNow = async () => {
+      try {
+        const tripData = {
+          tripType,
+          groupType,
+          groupSize,
+          destination,
+          departDate: departDate?.toISOString(),
+          returnDate: returnDate?.toISOString(),
+          budget,
+          needsFlights,
+          sourceLocation,
+          returnLocation,
+          enableGroupPolling,
+          emails,
+          stayType,
+          specificPlaces,
+        };
+
+        await supabase
+          .from('user_profiles')
+          .update({ 
+            draft_trip_data: tripData,
+            last_planning_step: currentView === "main" ? "plan" : currentView
+          })
+          .eq('user_id', user.id);
+      } catch (e) {
+        console.error('Immediate save failed:', e);
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        void persistNow();
+      }
+    };
+
+    const handlePageHide = () => {
+      void persistNow();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [user, isLoadingUserData, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, sourceLocation, returnLocation, enableGroupPolling, emails, currentView, stayType, specificPlaces]);
 
   // Clear flight data when key inputs change
   useEffect(() => {
