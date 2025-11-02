@@ -11,6 +11,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +39,8 @@ import {
   Plus,
   Shield,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  AlertCircle
 } from "lucide-react";
 import heroImage from "@/assets/hero-travel.jpg";
 import ChatBot from "./ChatBot";
@@ -49,6 +52,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const TravelInterface = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [tripType, setTripType] = useState("");
   const [groupType, setGroupType] = useState("");
   const [groupSize, setGroupSize] = useState("");
@@ -293,6 +297,21 @@ const TravelInterface = () => {
         .eq('user_id', user.id);
       
       setItinerary(data);
+      
+      // Show toast if there are warnings or errors
+      if (data?.warning || data?.error || data?.generationError) {
+        toast({
+          title: data?.error || data?.generationError ? "Itinerary Generation Issue" : "Notice",
+          description: data?.warning || data?.errorMessage || "The itinerary was generated with some issues. Please review the notice above.",
+          variant: data?.error || data?.generationError ? "destructive" : "default",
+        });
+      } else {
+        toast({
+          title: "Itinerary Created!",
+          description: "Your personalized travel itinerary is ready.",
+        });
+      }
+      
       setCurrentView('itinerary');
     } catch (error) {
       console.error('Error creating itinerary:', error);
@@ -490,6 +509,21 @@ const TravelInterface = () => {
         .eq('user_id', user.id);
       
       setItinerary(data);
+      
+      // Show toast if there are warnings or errors
+      if (data?.warning || data?.error || data?.generationError) {
+        toast({
+          title: data?.error || data?.generationError ? "Itinerary Generation Issue" : "Notice",
+          description: data?.warning || data?.errorMessage || "The itinerary was generated with some issues. Please review the notice above.",
+          variant: data?.error || data?.generationError ? "destructive" : "default",
+        });
+      } else {
+        toast({
+          title: "Itinerary Created!",
+          description: "Your personalized travel itinerary is ready.",
+        });
+      }
+      
       setCurrentView('itinerary');
     } catch (error) {
       console.error('Error creating itinerary:', error);
@@ -1026,6 +1060,18 @@ const TravelInterface = () => {
           >
             ← Back to Planning
           </Button>
+          
+          {/* Warning/Error Messages */}
+          {(itinerary.warning || itinerary.error || itinerary.generationError) && (
+            <Alert className="mb-6" variant={itinerary.error || itinerary.generationError ? "destructive" : "default"}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>{itinerary.error || itinerary.generationError ? "Itinerary Generation Issue" : "Important Notice"}</AlertTitle>
+              <AlertDescription>
+                {itinerary.warning && <p className="mb-2">{itinerary.warning}</p>}
+                {itinerary.errorMessage && <p>{itinerary.errorMessage}</p>}
+              </AlertDescription>
+            </Alert>
+          )}
           
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Main Itinerary */}
