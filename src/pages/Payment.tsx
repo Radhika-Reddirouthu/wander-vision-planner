@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,6 @@ const Payment = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [showPaymentDoneButton, setShowPaymentDoneButton] = useState(false);
   const [paymentCompleted, setPaymentCompleted] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Calculate total cost
   const totalCost = parseInt(flightCost) + parseInt(hotelCost) + parseInt(activitiesCost);
@@ -44,20 +43,6 @@ const Payment = () => {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
-
-  // Generate QR code for UPI
-  useEffect(() => {
-    if (paymentMethod === 'upi' && selectedUpiApp && canvasRef.current) {
-      const upiString = selectedUpiApp === 'other' && upiId 
-        ? `upi://pay?pa=${upiId}&pn=Travel&am=${totalCost}&cu=INR`
-        : `upi://pay?pa=merchant@upi&pn=Travel&am=${totalCost}&cu=INR`;
-      
-      QRCode.toCanvas(canvasRef.current, upiString, { width: 200 }, (error) => {
-        if (error) console.error('QR Code generation error:', error);
-        else setShowPaymentDoneButton(true);
-      });
-    }
-  }, [paymentMethod, selectedUpiApp, upiId, totalCost]);
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -397,11 +382,29 @@ const Payment = () => {
                             </p>
                           </div>
 
-                          <div className="flex flex-col items-center space-y-4 border rounded-lg p-6 bg-muted/30">
-                            <p className="text-sm text-muted-foreground">Scan QR code to pay {formattedTotal}</p>
-                            <canvas ref={canvasRef} className="border-4 border-white rounded-lg shadow-lg" />
-                            <p className="text-xs text-muted-foreground">Or open your UPI app and scan this code</p>
-                          </div>
+                          {upiId.trim() && (
+                            <Button
+                              type="button"
+                              onClick={async () => {
+                                const upiString = `upi://pay?pa=${upiId}&pn=Travel&am=${totalCost}&cu=INR`;
+                                
+                                const qrUrl = await QRCode.toDataURL(upiString, { width: 200 });
+                                setQrCodeUrl(qrUrl);
+                                setShowPaymentDoneButton(true);
+                              }}
+                              className="w-full"
+                            >
+                              Generate Payment QR Code
+                            </Button>
+                          )}
+
+                          {qrCodeUrl && (
+                            <div className="flex flex-col items-center space-y-4 border rounded-lg p-6 bg-muted/30">
+                              <p className="text-sm text-muted-foreground">Scan QR code to pay {formattedTotal}</p>
+                              <img src={qrCodeUrl} alt="UPI Payment QR Code" className="border-4 border-white rounded-lg shadow-lg" />
+                              <p className="text-xs text-muted-foreground">Or open your UPI app and scan this code</p>
+                            </div>
+                          )}
                         </>
                       )}
                     </div>
