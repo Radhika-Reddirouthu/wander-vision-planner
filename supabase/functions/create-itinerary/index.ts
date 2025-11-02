@@ -103,12 +103,10 @@ Please prioritize these group preferences in the itinerary. When there are choic
     const endDate = new Date(returnDate);
     const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
-    // Compact mode to avoid oversized JSON that causes truncation/parsing failures
+    // Compact mode for descriptions to avoid oversized JSON
     const compactMode = totalDays > 6 || (typeof specificPlaces === 'string' && specificPlaces.trim().length > 0);
     const truncatedSpecificPlaces = (specificPlaces || '').toString().trim().slice(0, 200);
-    const perDayHotelRequirement = compactMode ? '1 REAL hotel' : '3 REAL hotels';
-    const perDayActivitiesRequirement = compactMode ? '2-3 SPECIFIC activities' : '3-4 SPECIFIC activities';
-    const descriptionLengthNote = compactMode ? 'Keep all descriptions under 25-35 words to reduce response size.' : '';
+    const descriptionLengthNote = compactMode ? 'Keep all descriptions under 30-40 words to reduce response size.' : '';
 
     const prompt = `You are a professional travel planner creating a ${totalDays}-day itinerary for ${destination}.
 
@@ -138,7 +136,7 @@ MANDATORY REQUIREMENTS:
 
 2. COMPLETE ${totalDays}-DAY ITINERARY:
    - Create EVERY SINGLE day from 1 to ${totalDays} - NO PLACEHOLDERS
-   - Each day: ${perDayHotelRequirement} + ${perDayActivitiesRequirement} with times and costs
+   - Each day: 3 REAL hotels + 3-4 SPECIFIC activities with times and costs
    - Include exact locations, timings (e.g., 9:00 AM), durations, and estimated costs
    ${truncatedSpecificPlaces ? `- MUST include these places: ${truncatedSpecificPlaces}` : ''}
    ${descriptionLengthNote}
@@ -194,7 +192,7 @@ JSON STRUCTURE (return ONLY valid JSON, no markdown):
           "whyRecommended": "specific reason",
           "imageUrl": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop"
         }
-        // ${compactMode ? 'No more hotels per day in compact mode' : '2 more REAL hotels'}
+        // 2 more REAL hotels
       ],
       "activities": [
         {
@@ -207,7 +205,7 @@ JSON STRUCTURE (return ONLY valid JSON, no markdown):
           "weatherSuitability": "indoor/outdoor/flexible",
           "activityType": "cultural/adventure/food/relaxation/shopping"
         }
-        // ${compactMode ? '1-2 more specific activities' : '2-3 more specific activities'}
+        // 2-3 more specific activities
       ]
     }
     // Continue for ALL ${totalDays} days
@@ -260,7 +258,8 @@ CRITICAL: Generate ALL ${totalDays} days with SPECIFIC activities (not "explorin
     }
 
     const text = data.candidates[0].content.parts[0].text || ""
-    console.log('Raw Gemini response:', text)
+    console.log('Raw Gemini response length:', text.length)
+    console.log('First 500 chars:', text.substring(0, 500))
 
     // Parse JSON from Gemini response
     let parsedData
@@ -271,7 +270,8 @@ CRITICAL: Generate ALL ${totalDays} days with SPECIFIC activities (not "explorin
       // Try direct JSON parse first
       try {
         parsed = JSON.parse(raw)
-      } catch {
+      } catch (e) {
+        console.log('Initial parse failed, cleaning JSON:', e)
         // Clean and extract JSON
         let jsonText = raw
           .replace(/^```json\s*/i, '')
@@ -290,6 +290,26 @@ CRITICAL: Generate ALL ${totalDays} days with SPECIFIC activities (not "explorin
           .replace(/\\u0026/g, '&')
           .replace(/\u0026/g, '&')
 
+        // Fix incomplete arrays and objects at the end
+        let openBraces = 0, openBrackets = 0;
+        for (const char of jsonText) {
+          if (char === '{') openBraces++;
+          if (char === '}') openBraces--;
+          if (char === '[') openBrackets++;
+          if (char === ']') openBrackets--;
+        }
+        
+        // Close unclosed structures
+        while (openBrackets > 0) {
+          jsonText += ']';
+          openBrackets--;
+        }
+        while (openBraces > 0) {
+          jsonText += '}';
+          openBraces--;
+        }
+
+        console.log('Cleaned JSON length:', jsonText.length)
         parsed = JSON.parse(jsonText)
       }
 
