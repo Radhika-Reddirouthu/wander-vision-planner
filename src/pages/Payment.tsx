@@ -327,87 +327,94 @@ const Payment = () => {
 
                   <TabsContent value="upi" className="space-y-4 mt-0">
                     <div className="space-y-4">
-                      <Label>Select UPI Payment Method</Label>
-                      <RadioGroup value={selectedUpiApp} onValueChange={setSelectedUpiApp}>
+                      <Label>Select Payment Option</Label>
+                      <RadioGroup value={selectedUpiApp} onValueChange={(value) => {
+                        setSelectedUpiApp(value);
+                        setQrCodeUrl('');
+                        setShowPaymentDoneButton(false);
+                      }}>
                         <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-accent cursor-pointer">
-                          <RadioGroupItem value="gpay" id="gpay" />
-                          <Label htmlFor="gpay" className="flex items-center space-x-3 cursor-pointer flex-1">
+                          <RadioGroupItem value="qr-code" id="qr-code" />
+                          <Label htmlFor="qr-code" className="flex items-center space-x-3 cursor-pointer flex-1">
                             <Smartphone className="w-5 h-5 text-primary" />
-                            <span>Google Pay (GPay)</span>
+                            <span>Show QR Code</span>
                           </Label>
                         </div>
                         
                         <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-accent cursor-pointer">
-                          <RadioGroupItem value="phonepe" id="phonepe" />
-                          <Label htmlFor="phonepe" className="flex items-center space-x-3 cursor-pointer flex-1">
+                          <RadioGroupItem value="upi-id" id="upi-id" />
+                          <Label htmlFor="upi-id" className="flex items-center space-x-3 cursor-pointer flex-1">
                             <Smartphone className="w-5 h-5 text-primary" />
-                            <span>PhonePe</span>
-                          </Label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-accent cursor-pointer">
-                          <RadioGroupItem value="paytm" id="paytm" />
-                          <Label htmlFor="paytm" className="flex items-center space-x-3 cursor-pointer flex-1">
-                            <Smartphone className="w-5 h-5 text-primary" />
-                            <span>Paytm</span>
-                          </Label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-accent cursor-pointer">
-                          <RadioGroupItem value="other" id="other" />
-                          <Label htmlFor="other" className="flex items-center space-x-3 cursor-pointer flex-1">
-                            <Smartphone className="w-5 h-5 text-primary" />
-                            <span>Other UPI ID</span>
+                            <span>Enter UPI ID</span>
                           </Label>
                         </div>
                       </RadioGroup>
 
-                      {selectedUpiApp && (
-                        <>
-                          <div className="flex gap-2">
-                            <div className="flex-1">
-                              <Label htmlFor="upiId">Enter Your UPI ID {selectedUpiApp !== 'other' && '(Optional)'}</Label>
-                              <Input
-                                id="upiId"
-                                type="text"
-                                placeholder={selectedUpiApp === 'other' ? "yourname@upi" : "yourname@upi (or use app to scan QR)"}
-                                value={upiId}
-                                onChange={(e) => setUpiId(e.target.value)}
-                                className="mt-2"
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {selectedUpiApp === 'other' 
-                                  ? "Enter your UPI ID to generate payment QR code"
-                                  : "Provide your UPI ID for payment confirmation, or scan the QR code with your app"
-                                }
-                              </p>
-                            </div>
-                            {upiId.trim() && (
-                              <div className="flex items-end">
-                                <Button
-                                  type="button"
-                                  onClick={async () => {
-                                    const upiString = `upi://pay?pa=${upiId}&pn=Travel&am=${totalCost}&cu=INR`;
-                                    
-                                    const qrUrl = await QRCode.toDataURL(upiString, { width: 200 });
-                                    setQrCodeUrl(qrUrl);
-                                    setShowPaymentDoneButton(true);
-                                  }}
-                                >
-                                  Generate QR
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-
+                      {selectedUpiApp === 'qr-code' && (
+                        <div className="space-y-4">
+                          <Button
+                            type="button"
+                            onClick={async () => {
+                              const upiString = `upi://pay?pa=merchant@upi&pn=Travel&am=${totalCost}&cu=INR`;
+                              const qrUrl = await QRCode.toDataURL(upiString, { width: 200 });
+                              setQrCodeUrl(qrUrl);
+                              setShowPaymentDoneButton(true);
+                            }}
+                            className="w-full"
+                          >
+                            Generate QR Code
+                          </Button>
+                          
                           {qrCodeUrl && (
                             <div className="flex flex-col items-center space-y-4 border rounded-lg p-6 bg-muted/30">
                               <p className="text-sm text-muted-foreground">Scan QR code to pay {formattedTotal}</p>
                               <img src={qrCodeUrl} alt="UPI Payment QR Code" className="border-4 border-white rounded-lg shadow-lg" />
-                              <p className="text-xs text-muted-foreground">Or open your UPI app and scan this code</p>
+                              <p className="text-xs text-muted-foreground">Open your UPI app and scan this code</p>
                             </div>
                           )}
-                        </>
+                        </div>
+                      )}
+
+                      {selectedUpiApp === 'upi-id' && (
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="upiId">Enter Your UPI ID</Label>
+                            <Input
+                              id="upiId"
+                              type="text"
+                              placeholder="yourname@upi"
+                              value={upiId}
+                              onChange={(e) => setUpiId(e.target.value)}
+                              className="mt-2"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Enter your UPI ID and click submit to proceed
+                            </p>
+                          </div>
+                          
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              if (!upiId.trim()) {
+                                toast({
+                                  title: "UPI ID Required",
+                                  description: "Please enter your UPI ID",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              setShowPaymentDoneButton(true);
+                              toast({
+                                title: "UPI ID Submitted",
+                                description: "Complete your payment and click 'Payment Done'",
+                              });
+                            }}
+                            disabled={!upiId.trim()}
+                            className="w-full"
+                          >
+                            Submit UPI ID
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </TabsContent>
