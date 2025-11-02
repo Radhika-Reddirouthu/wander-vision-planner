@@ -158,7 +158,7 @@ const TravelInterface = () => {
   // Save trip data automatically when form values change
   useEffect(() => {
     const saveTripData = async () => {
-      if (!user || isLoadingUserData) return;
+      if (!user || isLoadingUserData || document.hidden) return;
 
       const tripData = {
         tripType,
@@ -170,6 +170,7 @@ const TravelInterface = () => {
         budget,
         needsFlights,
         sourceLocation,
+        returnLocation,
         enableGroupPolling,
         emails,
         stayType,
@@ -194,7 +195,7 @@ const TravelInterface = () => {
 
     const timeoutId = setTimeout(saveTripData, 1000); // Debounce saves
     return () => clearTimeout(timeoutId);
-  }, [user, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, sourceLocation, enableGroupPolling, emails, currentView, isLoadingUserData, stayType, specificPlaces]);
+  }, [user, tripType, groupType, groupSize, destination, departDate, returnDate, budget, needsFlights, sourceLocation, returnLocation, enableGroupPolling, emails, currentView, isLoadingUserData, stayType, specificPlaces]);
 
   // Clear flight data when key inputs change
   useEffect(() => {
@@ -912,20 +913,6 @@ const TravelInterface = () => {
                          </div>
                        </div>
                      </RadioGroup>
-                     
-                     {/* Custom Stay Input */}
-                     <div className="mt-4">
-                       <Label htmlFor="customStay" className="text-sm font-medium mb-2 block">
-                         Do you have any specific stay in mind?
-                       </Label>
-                       <Input
-                         id="customStay"
-                         placeholder="e.g., Taj Hotel, specific Airbnb location..."
-                         value={customStay}
-                         onChange={(e) => setCustomStay(e.target.value)}
-                         className="text-lg p-4"
-                       />
-                     </div>
                    </div>
 
                    {/* Specific Places to Visit */}
@@ -1423,16 +1410,19 @@ const TravelInterface = () => {
                                    selectedHotels[dayIndex] === hotelIndex
                                      ? "border-primary bg-primary/5"
                                      : "border-border hover:border-primary/50"
-                                 )}
-                               >
-                                  {hotel.imageUrl && (
-                                    <img
-                                      src={hotel.imageUrl}
-                                      alt={hotel.name}
-                                      className="w-full h-32 object-cover rounded-md mb-3"
-                                    />
                                   )}
-                                  <h5 className="font-semibold text-sm mb-1">{hotel.name}</h5>
+                                >
+                                   {hotel.imageUrl && (
+                                     <img
+                                       src={hotel.imageUrl}
+                                       alt={hotel.name}
+                                       className="w-full h-32 object-cover rounded-md mb-3"
+                                       onError={(e) => {
+                                         e.currentTarget.style.display = 'none';
+                                       }}
+                                     />
+                                   )}
+                                   <h5 className="font-semibold text-sm mb-1">{hotel.name}</h5>
                                   {hotel.rating && (
                                     <div className="flex items-center gap-1 mb-1">
                                       <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
