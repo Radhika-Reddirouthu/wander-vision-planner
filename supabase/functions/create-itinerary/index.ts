@@ -221,6 +221,7 @@ CRITICAL: Generate ALL ${totalDays} days with SPECIFIC activities (not "explorin
           topK: 40,
           topP: 0.95,
           maxOutputTokens: 16384,
+          response_mime_type: "application/json"
         }
       }),
     })
@@ -234,133 +235,242 @@ CRITICAL: Generate ALL ${totalDays} days with SPECIFIC activities (not "explorin
     const text = data.candidates[0].content.parts[0].text
     console.log('Raw Gemini response:', text)
     
-    // Try to parse JSON from the response
+    // Try to parse JSON from the response (prefer strict JSON first)
     let parsedData
     try {
-      // First, try to extract JSON from markdown code blocks
-      let jsonText = text
-      
-      // Remove markdown code block markers
-      jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*$/g, '')
-      
-      // Try to find the main JSON object
-      const jsonMatch = jsonText.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
+      const raw = (text ?? '').trim()
+      let parsed: any
+
+      // Fast path: if the model respected response_mime_type and returned pure JSON
+      try {
+        parsed = JSON.parse(raw)
+      } catch {
+        // Fallback cleaning and extraction
+        let jsonText = raw
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/```$/i, '')
+          .trim()
+
+        const jsonMatch = jsonText.match(/\{[\s\S]*\}/)
+        if (!jsonMatch) {
+          throw new Error('No JSON found in response')
+        }
         jsonText = jsonMatch[0]
-        
-        // Clean up the JSON by removing JavaScript-style comments
-        jsonText = jsonText.replace(/\/\/.*$/gm, '')
-        jsonText = jsonText.replace(/\/\*[\s\S]*?\*\//g, '')
-        
-        // Remove trailing commas before closing brackets/braces
-        jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1')
-        
-        // Replace HTML entities and control characters
-        jsonText = jsonText.replace(/\\u0026/g, '&')
-        jsonText = jsonText.replace(/\u0026/g, '&')
-        jsonText = jsonText.replace(/\\u003c/g, '<')
-        jsonText = jsonText.replace(/\\u003e/g, '>')
-        jsonText = jsonText.replace(/\\u0027/g, "'")
-        jsonText = jsonText.replace(/\\u0022/g, '"')
-        
-        // Remove any other control characters that might break JSON parsing
-        jsonText = jsonText.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-        
-        // Handle incomplete itinerary arrays - if itinerary is incomplete, create a basic structure
-        const parsed = JSON.parse(jsonText)
-        
-        // Ensure we have all required days
+
+        // Remove JS-style comments and trailing commas
+        jsonText = jsonText
+          .replace(/\/\/.*$/gm, '')
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .replace(/,(\s*[}\]])/g, '$1')
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+
+        // Replace common escaped entities
+        jsonText = jsonText
+          .replace(/\\u0026/g, '&')
+          .replace(/\u0026/g, '&')
+          .replace(/\\u003c/g, '<')
+          .replace(/\\u003e/g, '>')
+          .replace(/\\u0027/g, "'")
+          .replace(/\\u0022/g, '"')
+
+        parsed = JSON.parse(jsonText)
+      }
+
+      // Ensure we have all required days
+      if (parsed.itinerary && Array.isArray(parsed.itinerary)) {
+        const currentDays = parsed.itinerary.length
+        if (currentDays < totalDays) {
+          console.log(`Incomplete itinerary: got ${currentDays} days, need ${totalDays}`)
+
+          // Fill in missing days with realistic hotel names
+          const hotelBrands = stayType === "budget" 
+            ? [`Zostel ${destination}`, `FabHotel ${destination}`, `Treebo ${destination}`]
+            : stayType === "luxury"
+            ? [`Taj ${destination}`, `The Oberoi ${destination}`, `ITC Grand ${destination}`]
+            : [`Lemon Tree ${destination}`, `The Park ${destination}`, `Fortune Select ${destination}`];
+
+          for (let day = currentDays + 1; day <= totalDays; day++) {
+            parsed.itinerary.push({
+              day: day,
+              title: `Day ${day} - Explore ${destination}`,
+              weatherNote: "Please check local weather conditions",
+              hotels: [
+                {
+                  name: hotelBrands[0],
+                  category: stayType,
+                  rating: 4.0,
+                  pricePerNight: stayType === "budget" ? "₹1,500" : stayType === "luxury" ? "₹8,000" : "₹3,000",
+                  location: destination,
+                  amenities: ["WiFi", "AC", "Restaurant"],
+                  whyRecommended: "Comfortable stay with good amenities",
+                  imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop"
+                },
+                {
+                  name: hotelBrands[1],
+                  category: stayType,
+                  rating: 4.2,
+                  pricePerNight: stayType === "budget" ? "₹2,000" : stayType === "luxury" ? "₹10,000" : "₹3,500",
+                  location: destination,
+                  amenities: ["WiFi", "Pool", "Gym"],
+                  whyRecommended: "Great location with modern facilities",
+                  imageUrl: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&h=300&fit=crop"
+                },
+                {
+                  name: hotelBrands[2],
+                  category: stayType,
+                  rating: 4.5,
+                  pricePerNight: stayType === "budget" ? "₹2,500" : stayType === "luxury" ? "₹12,000" : "₹4,000",
+                  location: destination,
+                  amenities: ["WiFi", "Spa", "Restaurant"],
+                  whyRecommended: "Premium choice with excellent service",
+                  imageUrl: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&h=300&fit=crop"
+                }
+              ],
+              activities: [
+                {
+                  time: "9:00 AM",
+                  activity: "Morning exploration",
+                  location: destination,
+                  description: "Explore local attractions and culture",
+                  estimatedCost: "₹1,000",
+                  duration: "3 hours",
+                  weatherSuitability: "flexible"
+                },
+                {
+                  time: "2:00 PM",
+                  activity: "Afternoon activities",
+                  location: destination,
+                  description: "Continue exploring or relax",
+                  estimatedCost: "₹800",
+                  duration: "2 hours",
+                  weatherSuitability: "flexible"
+                }
+              ]
+            })
+          }
+        }
+      }
+
+      // Ensure basic structure exists
+      if (!parsed.destination) parsed.destination = destination
+      if (!parsed.tripType) parsed.tripType = tripType
+      if (!parsed.duration) parsed.duration = `${totalDays} days`
+      if (!parsed.estimatedBudget) {
+        parsed.estimatedBudget = {
+          total: budget || "₹50,000",
+          breakdown: {
+            accommodation: "₹20,000",
+            food: "₹15,000",
+            activities: "₹10,000",
+            transport: "₹5,000"
+          }
+        }
+      }
+
+      // Inject flight data if available
+      if (flightData && !flightData.error) {
+        parsed.flightOptions = flightData.flightOptions
+        parsed.sourceAirport = flightData.sourceAirport
+        parsed.destinationAirport = flightData.destinationAirport
+        parsed.bookingTips = flightData.bookingTips
+        parsed.bestTimeToBook = flightData.bestTimeToBook
+        parsed.priceComparison = flightData.priceComparison
+      }
+
+      // Detect generic/low-quality responses
+      let hasGenericActivities = false;
+      if (parsed.itinerary && Array.isArray(parsed.itinerary)) {
+        for (const day of parsed.itinerary) {
+          if (day.activities && Array.isArray(day.activities)) {
+            for (const activity of day.activities) {
+              const activityLower = activity.activity?.toLowerCase() || '';
+              const descLower = activity.description?.toLowerCase() || '';
+
+              if (
+                activityLower.includes('indoor activities') ||
+                (activityLower.includes('exploring') && !activityLower.includes('exploring the')) ||
+                activityLower === 'local sightseeing' ||
+                activityLower === 'sightseeing' ||
+                (descLower.includes('explore local attractions') && descLower.length < 50)
+              ) {
+                hasGenericActivities = true;
+                console.warn(`Generic activity detected on day ${day.day}: "${activity.activity}"`);
+              }
+            }
+          }
+        }
+      }
+
+      if (hasGenericActivities) {
+        parsed.warning = "⚠️ Some activities are generic. We recommend researching specific attractions in " + destination + " to enhance your itinerary.";
+        console.log('Warning added for generic activities');
+      }
+
+      parsedData = parsed
+      console.log('Successfully parsed and completed itinerary data')
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError)
+      console.error('Raw Gemini response:', text)
+
+      // One quick retry requesting strict JSON only
+      try {
+        const retryResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `${prompt}\n\nReturn ONLY raw JSON. No markdown, no commentary.` }] }],
+            generationConfig: {
+              temperature: 0.3,
+              topK: 40,
+              topP: 0.9,
+              maxOutputTokens: 16384,
+              response_mime_type: "application/json"
+            }
+          })
+        })
+
+        const retryData = await retryResponse.json()
+        if (!retryResponse.ok) throw new Error(`Retry Gemini API error: ${retryData.error?.message || 'Unknown error'}`)
+
+        const retryText = retryData.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+        let parsed = JSON.parse((retryText || '').trim())
+
+        // Post-process as above
         if (parsed.itinerary && Array.isArray(parsed.itinerary)) {
           const currentDays = parsed.itinerary.length
           if (currentDays < totalDays) {
-            console.log(`Incomplete itinerary: got ${currentDays} days, need ${totalDays}`)
-            
-            // Fill in missing days with realistic hotel names
             const hotelBrands = stayType === "budget" 
               ? [`Zostel ${destination}`, `FabHotel ${destination}`, `Treebo ${destination}`]
               : stayType === "luxury"
               ? [`Taj ${destination}`, `The Oberoi ${destination}`, `ITC Grand ${destination}`]
               : [`Lemon Tree ${destination}`, `The Park ${destination}`, `Fortune Select ${destination}`];
-            
+
             for (let day = currentDays + 1; day <= totalDays; day++) {
               parsed.itinerary.push({
-                day: day,
+                day,
                 title: `Day ${day} - Explore ${destination}`,
                 weatherNote: "Please check local weather conditions",
                 hotels: [
-                  {
-                    name: hotelBrands[0],
-                    category: stayType,
-                    rating: 4.0,
-                    pricePerNight: stayType === "budget" ? "₹1,500" : stayType === "luxury" ? "₹8,000" : "₹3,000",
-                    location: destination,
-                    amenities: ["WiFi", "AC", "Restaurant"],
-                    whyRecommended: "Comfortable stay with good amenities",
-                    imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop"
-                  },
-                  {
-                    name: hotelBrands[1],
-                    category: stayType,
-                    rating: 4.2,
-                    pricePerNight: stayType === "budget" ? "₹2,000" : stayType === "luxury" ? "₹10,000" : "₹3,500",
-                    location: destination,
-                    amenities: ["WiFi", "Pool", "Gym"],
-                    whyRecommended: "Great location with modern facilities",
-                    imageUrl: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&h=300&fit=crop"
-                  },
-                  {
-                    name: hotelBrands[2],
-                    category: stayType,
-                    rating: 4.5,
-                    pricePerNight: stayType === "budget" ? "₹2,500" : stayType === "luxury" ? "₹12,000" : "₹4,000",
-                    location: destination,
-                    amenities: ["WiFi", "Spa", "Restaurant"],
-                    whyRecommended: "Premium choice with excellent service",
-                    imageUrl: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&h=300&fit=crop"
-                  }
+                  { name: hotelBrands[0], category: stayType, rating: 4.0, pricePerNight: stayType === "budget" ? "₹1,500" : stayType === "luxury" ? "₹8,000" : "₹3,000", location: destination, amenities: ["WiFi","AC","Restaurant"], whyRecommended: "Comfortable stay with good amenities", imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop" },
+                  { name: hotelBrands[1], category: stayType, rating: 4.2, pricePerNight: stayType === "budget" ? "₹2,000" : stayType === "luxury" ? "₹10,000" : "₹3,500", location: destination, amenities: ["WiFi","Pool","Gym"], whyRecommended: "Great location with modern facilities", imageUrl: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&h=300&fit=crop" },
+                  { name: hotelBrands[2], category: stayType, rating: 4.5, pricePerNight: stayType === "budget" ? "₹2,500" : stayType === "luxury" ? "₹12,000" : "₹4,000", location: destination, amenities: ["WiFi","Spa","Restaurant"], whyRecommended: "Premium choice with excellent service", imageUrl: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&h=300&fit=crop" }
                 ],
                 activities: [
-                  {
-                    time: "9:00 AM",
-                    activity: "Morning exploration",
-                    location: destination,
-                    description: "Explore local attractions and culture",
-                    estimatedCost: "₹1,000",
-                    duration: "3 hours",
-                    weatherSuitability: "flexible"
-                  },
-                  {
-                    time: "2:00 PM",
-                    activity: "Afternoon activities",
-                    location: destination,
-                    description: "Continue exploring or relax",
-                    estimatedCost: "₹800",
-                    duration: "2 hours",
-                    weatherSuitability: "flexible"
-                  }
+                  { time: "9:00 AM", activity: "Morning exploration", location: destination, description: "Explore local attractions and culture", estimatedCost: "₹1,000", duration: "3 hours", weatherSuitability: "flexible" },
+                  { time: "2:00 PM", activity: "Afternoon activities", location: destination, description: "Continue exploring or relax", estimatedCost: "₹800", duration: "2 hours", weatherSuitability: "flexible" }
                 ]
               })
             }
           }
         }
-        
-        // Ensure basic structure exists
+
         if (!parsed.destination) parsed.destination = destination
         if (!parsed.tripType) parsed.tripType = tripType
         if (!parsed.duration) parsed.duration = `${totalDays} days`
         if (!parsed.estimatedBudget) {
-          parsed.estimatedBudget = {
-            total: budget || "₹50,000",
-            breakdown: {
-              accommodation: "₹20,000",
-              food: "₹15,000",
-              activities: "₹10,000",
-              transport: "₹5,000"
-            }
-          }
+          parsed.estimatedBudget = { total: budget || "₹50,000", breakdown: { accommodation: "₹20,000", food: "₹15,000", activities: "₹10,000", transport: "₹5,000" } }
         }
-        
-        // Inject flight data if available
         if (flightData && !flightData.error) {
           parsed.flightOptions = flightData.flightOptions
           parsed.sourceAirport = flightData.sourceAirport
@@ -369,44 +479,15 @@ CRITICAL: Generate ALL ${totalDays} days with SPECIFIC activities (not "explorin
           parsed.bestTimeToBook = flightData.bestTimeToBook
           parsed.priceComparison = flightData.priceComparison
         }
-        
-        // Detect generic/low-quality responses
-        let hasGenericActivities = false;
-        if (parsed.itinerary && Array.isArray(parsed.itinerary)) {
-          for (const day of parsed.itinerary) {
-            if (day.activities && Array.isArray(day.activities)) {
-              for (const activity of day.activities) {
-                const activityLower = activity.activity?.toLowerCase() || '';
-                const descLower = activity.description?.toLowerCase() || '';
-                
-                // Check for generic terms
-                if (
-                  activityLower.includes('indoor activities') ||
-                  activityLower.includes('exploring') && !activityLower.includes('exploring the') ||
-                  activityLower === 'local sightseeing' ||
-                  activityLower === 'sightseeing' ||
-                  descLower.includes('explore local attractions') && descLower.length < 50
-                ) {
-                  hasGenericActivities = true;
-                  console.warn(`Generic activity detected on day ${day.day}: "${activity.activity}"`);
-                }
-              }
-            }
-          }
-        }
-        
-        if (hasGenericActivities) {
-          parsed.warning = "⚠️ Some activities are generic. We recommend researching specific attractions in " + destination + " to enhance your itinerary.";
-          console.log('Warning added for generic activities');
-        }
-        
+
         parsedData = parsed
-        console.log('Successfully parsed and completed itinerary data')
-      } else {
-        console.error('No JSON found in Gemini response')
-        throw new Error('No JSON found in response')
+        return new Response(JSON.stringify(parsedData), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      } catch (retryErr) {
+        console.error('Retry after parse failure also failed:', retryErr)
       }
-    } catch (parseError) {
+
+      // If retry fails, proceed to fallback handled below
+    }
       console.error('JSON parsing error:', parseError)
       console.error('Raw Gemini response:', text)
       
