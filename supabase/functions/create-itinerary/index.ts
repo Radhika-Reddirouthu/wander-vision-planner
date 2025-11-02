@@ -103,6 +103,13 @@ Please prioritize these group preferences in the itinerary. When there are choic
     const endDate = new Date(returnDate);
     const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
+    // Compact mode to avoid oversized JSON that causes truncation/parsing failures
+    const compactMode = totalDays > 6 || (typeof specificPlaces === 'string' && specificPlaces.trim().length > 0);
+    const truncatedSpecificPlaces = (specificPlaces || '').toString().trim().slice(0, 200);
+    const perDayHotelRequirement = compactMode ? '1 REAL hotel' : '3 REAL hotels';
+    const perDayActivitiesRequirement = compactMode ? '2-3 SPECIFIC activities' : '3-4 SPECIFIC activities';
+    const descriptionLengthNote = compactMode ? 'Keep all descriptions under 25-35 words to reduce response size.' : '';
+
     const prompt = `You are a professional travel planner creating a ${totalDays}-day itinerary for ${destination}.
 
 TRIP DETAILS:
@@ -113,7 +120,7 @@ TRIP DETAILS:
 - Budget: ${budget} INR
 - Flights: ${needsFlights && sourceLocation ? `From ${sourceLocation}${returnLocation ? ` returning to ${returnLocation}` : ''}` : 'Not needed'}
 ${customStay ? `- Accommodation Requirement: ${customStay}` : `- Accommodation Type: ${stayType}`}
-${specificPlaces ? `- Must Visit: ${specificPlaces}` : ''}
+${truncatedSpecificPlaces ? `- Must Visit: ${truncatedSpecificPlaces}` : ''}
 ${pollContext}
 
 DESTINATION NORMALIZATION:
@@ -131,9 +138,10 @@ MANDATORY REQUIREMENTS:
 
 2. COMPLETE ${totalDays}-DAY ITINERARY:
    - Create EVERY SINGLE day from 1 to ${totalDays} - NO PLACEHOLDERS
-   - Each day: 3 REAL hotels + 3-4 SPECIFIC activities with times and costs
+   - Each day: ${perDayHotelRequirement} + ${perDayActivitiesRequirement} with times and costs
    - Include exact locations, timings (e.g., 9:00 AM), durations, and estimated costs
-   ${specificPlaces ? `- MUST include these places: ${specificPlaces}` : ''}
+   ${truncatedSpecificPlaces ? `- MUST include these places: ${truncatedSpecificPlaces}` : ''}
+   ${descriptionLengthNote}
 
 3. SPECIFIC ACTIVITIES:
    - NO GENERIC activities like "indoor activities", "exploring", "local sightseeing"
@@ -186,20 +194,20 @@ JSON STRUCTURE (return ONLY valid JSON, no markdown):
           "whyRecommended": "specific reason",
           "imageUrl": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop"
         }
-        // 2 more REAL hotels
+        // ${compactMode ? 'No more hotels per day in compact mode' : '2 more REAL hotels'}
       ],
       "activities": [
         {
           "time": "9:00 AM",
           "activity": "SPECIFIC Activity Name",
           "location": "EXACT Location in ${destination}",
-          "description": "Detailed description (50+ words)",
+          "description": "Detailed description",
           "estimatedCost": "₹XXX",
           "duration": "X hours",
           "weatherSuitability": "indoor/outdoor/flexible",
           "activityType": "cultural/adventure/food/relaxation/shopping"
         }
-        // 2-3 more specific activities
+        // ${compactMode ? '1-2 more specific activities' : '2-3 more specific activities'}
       ]
     }
     // Continue for ALL ${totalDays} days
