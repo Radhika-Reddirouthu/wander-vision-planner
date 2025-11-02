@@ -675,10 +675,18 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
 
                   <Button 
                     onClick={handleTripDetailsSubmit}
+                    disabled={isLoadingFlights}
                     className="w-full bg-gradient-adventure text-white text-lg py-6"
                     size="lg"
                   >
-                    Continue to Hotel & Flight Selection
+                    {isLoadingFlights ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Loading flights and hotels...
+                      </>
+                    ) : (
+                      'Continue to Hotel & Flight Selection'
+                    )}
                   </Button>
                 </CardContent>
               </Card>

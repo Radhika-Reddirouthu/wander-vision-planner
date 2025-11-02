@@ -328,10 +328,19 @@ const Payment = () => {
                   <TabsContent value="upi" className="space-y-4 mt-0">
                     <div className="space-y-4">
                       <Label>Select Payment Option</Label>
-                      <RadioGroup value={selectedUpiApp} onValueChange={(value) => {
+                      <RadioGroup value={selectedUpiApp} onValueChange={async (value) => {
                         setSelectedUpiApp(value);
-                        setQrCodeUrl('');
                         setShowPaymentDoneButton(false);
+                        
+                        // Auto-generate QR code when QR option is selected
+                        if (value === 'qr-code') {
+                          const upiString = `upi://pay?pa=merchant@upi&pn=Travel&am=${totalCost}&cu=INR`;
+                          const qrUrl = await QRCode.toDataURL(upiString, { width: 200 });
+                          setQrCodeUrl(qrUrl);
+                          setShowPaymentDoneButton(true);
+                        } else {
+                          setQrCodeUrl('');
+                        }
                       }}>
                         <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-accent cursor-pointer">
                           <RadioGroupItem value="qr-code" id="qr-code" />
@@ -350,28 +359,15 @@ const Payment = () => {
                         </div>
                       </RadioGroup>
 
-                      {selectedUpiApp === 'qr-code' && (
-                        <div className="space-y-4">
-                          <Button
-                            type="button"
-                            onClick={async () => {
-                              const upiString = `upi://pay?pa=merchant@upi&pn=Travel&am=${totalCost}&cu=INR`;
-                              const qrUrl = await QRCode.toDataURL(upiString, { width: 200 });
-                              setQrCodeUrl(qrUrl);
-                              setShowPaymentDoneButton(true);
-                            }}
-                            className="w-full"
-                          >
-                            Generate QR Code
-                          </Button>
-                          
-                          {qrCodeUrl && (
-                            <div className="flex flex-col items-center space-y-4 border rounded-lg p-6 bg-muted/30">
-                              <p className="text-sm text-muted-foreground">Scan QR code to pay {formattedTotal}</p>
-                              <img src={qrCodeUrl} alt="UPI Payment QR Code" className="border-4 border-white rounded-lg shadow-lg" />
-                              <p className="text-xs text-muted-foreground">Open your UPI app and scan this code</p>
-                            </div>
-                          )}
+                      {selectedUpiApp === 'qr-code' && qrCodeUrl && (
+                        <div className="flex flex-col items-center space-y-4 border rounded-lg p-6 bg-muted/30">
+                          <p className="text-sm text-muted-foreground">Scan QR code to pay {formattedTotal}</p>
+                          <img 
+                            src={qrCodeUrl}
+                            alt="UPI Payment QR Code" 
+                            className="border-4 border-white rounded-lg shadow-lg" 
+                          />
+                          <p className="text-xs text-muted-foreground">Open your UPI app and scan this code</p>
                         </div>
                       )}
 
