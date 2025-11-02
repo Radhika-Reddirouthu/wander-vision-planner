@@ -183,7 +183,7 @@ JSON STRUCTURE (return ONLY valid JSON, no markdown):
       "weatherNote": "Expected weather",
       "hotels": [
         {
-          "name": "REAL Hotel Name (e.g., Taj Palace ${destination})",
+          "name": "REAL Hotel Name Option 1 (e.g., Taj Palace ${destination})",
           "category": "${stayType}",
           "rating": 4.5,
           "pricePerNight": "₹X,XXX",
@@ -191,8 +191,27 @@ JSON STRUCTURE (return ONLY valid JSON, no markdown):
           "amenities": ["WiFi", "Pool", "Spa", "Restaurant", "Gym"],
           "whyRecommended": "specific reason",
           "imageUrl": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop"
+        },
+        {
+          "name": "REAL Hotel Name Option 2 (e.g., The Oberoi ${destination})",
+          "category": "${stayType}",
+          "rating": 4.3,
+          "pricePerNight": "₹X,XXX",
+          "location": "specific area",
+          "amenities": ["WiFi", "Restaurant", "Gym", "Parking"],
+          "whyRecommended": "specific reason",
+          "imageUrl": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop"
+        },
+        {
+          "name": "REAL Hotel Name Option 3 (e.g., ITC Grand ${destination})",
+          "category": "${stayType}",
+          "rating": 4.7,
+          "pricePerNight": "₹X,XXX",
+          "location": "specific area",
+          "amenities": ["WiFi", "Spa", "Pool", "Restaurant"],
+          "whyRecommended": "specific reason",
+          "imageUrl": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop"
         }
-        // 2 more REAL hotels
       ],
       "activities": [
         {
@@ -323,6 +342,12 @@ CRITICAL: Generate ALL ${totalDays} days with SPECIFIC activities (not "explorin
             : stayType === "luxury"
             ? [`Taj ${destination}`, `The Oberoi ${destination}`, `ITC Grand ${destination}`]
             : [`Lemon Tree ${destination}`, `The Park ${destination}`, `Fortune Select ${destination}`]
+          
+          const hotelImages = [
+            "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop",
+            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop",
+            "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop"
+          ]
 
           for (let day = currentDays + 1; day <= totalDays; day++) {
             parsed.itinerary.push({
@@ -337,7 +362,7 @@ CRITICAL: Generate ALL ${totalDays} days with SPECIFIC activities (not "explorin
                 location: destination,
                 amenities: ["WiFi", "AC", "Restaurant"],
                 whyRecommended: "Comfortable accommodation",
-                imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop"
+                imageUrl: hotelImages[idx]
               })),
               activities: [
                 { time: "9:00 AM", activity: "Morning exploration", location: destination, description: "Explore local attractions", estimatedCost: "₹1,000", duration: "3 hours", weatherSuitability: "flexible" },
