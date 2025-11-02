@@ -1145,23 +1145,17 @@ const SurpriseView: React.FC<SurpriseViewProps> = ({ onBackToMain }) => {
                       const foodCost = parseInt(itinerary.budgetBreakdown.food?.replace(/[₹,]/g, '') || '0');
                       const transportCost = parseInt(itinerary.budgetBreakdown.transport?.replace(/[₹,]/g, '') || '0');
                       
-                      const totalCost = flightCost + hotelCost + activitiesCost + foodCost + transportCost;
+                      const totalActivitiesCost = activitiesCost + foodCost + transportCost;
                       
-                      navigate('/payment', { 
-                        state: { 
-                          destination: itinerary.destination,
-                          tripType,
-                          groupType,
-                          departDate,
-                          returnDate,
-                          flightCost: flightCost > 0 ? `₹${flightCost.toLocaleString()}` : undefined,
-                          hotelCost: `₹${hotelCost.toLocaleString()}`,
-                          activitiesCost: itinerary.budgetBreakdown.activities,
-                          foodCost: itinerary.budgetBreakdown.food,
-                          transportCost: itinerary.budgetBreakdown.transport,
-                          totalCost: `₹${totalCost.toLocaleString()}`
-                        }
+                      // Navigate with query parameters (not state)
+                      const params = new URLSearchParams({
+                        destination: itinerary.destination,
+                        flightCost: flightCost.toString(),
+                        hotelCost: hotelCost.toString(),
+                        activitiesCost: totalActivitiesCost.toString()
                       });
+                      
+                      navigate(`/payment?${params.toString()}`);
                     }}
                     className="bg-gradient-adventure text-white text-lg py-6 px-12"
                     size="lg"
